@@ -16,7 +16,8 @@
     defined('DS')           || define('DS', DIRECTORY_SEPARATOR);
     defined('PS')           || define('PS', PATH_SEPARATOR);
 
-    define(VENDORS_PATH, realpath(__DIR__ . '/../..'));
+    define('VENDORS_PATH', realpath(__DIR__ . '/../..'));
+    define('VENDOR_PATH', realpath(__DIR__ . '/../..'));
 
     require_once VENDORS_PATH . DS . 'schpill/thin/src/Loader.php';
     require_once __DIR__ . DS . 'context.php';
