@@ -15,6 +15,7 @@
     defined('MB_STRING')    || define('MB_STRING', (int) function_exists('mb_get_info'));
     defined('DS')           || define('DS', DIRECTORY_SEPARATOR);
     defined('PS')           || define('PS', PATH_SEPARATOR);
+    defined('VENDOR')       || define('VENDOR', realpath(__DIR__ . '/../..'));
 
     require_once __DIR__ . '/../../schpill/thin/src/Helper.php';
     require_once __DIR__ . '/../../autoload.php';

@@ -202,7 +202,7 @@
                 $class = 'Thin\\' . ucfirst($lib) . 'Lib';
             }
 
-            $file = VENDORS_PATH . DS . 'schpill/components/helpers' . DS . $script;
+            $file = VENDOR . DS . 'schpill/standalone/helpers' . DS . $script;
 
             if (file_exists($file)) {
                 require_once $file;

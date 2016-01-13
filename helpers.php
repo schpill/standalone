@@ -614,7 +614,7 @@
         $class = 'Thin\\' . ucfirst(strtolower($lib)) . 'Lib';
 
         if (!class_exists($class)) {
-            $file = VENDORS_PATH . DS . 'schpill/components/helpers' . DS . $lib . '.php';
+            $file = VENDOR . DS . 'schpill/standalone/helpers' . DS . $lib . '.php';
 
             if (file_exists($file)) {
                 require_once $file;
@@ -641,7 +641,7 @@
         $class = 'Thin\\' . ucfirst(strtolower($lib)) . 'Core';
 
         if (!class_exists($class)) {
-            $file = VENDORS_PATH . DS . 'schpill/components/core' . DS . $lib . '.php';
+            $file = VENDOR . DS . 'schpill/standalone/core' . DS . $lib . '.php';
 
             if (file_exists($file)) {
                 require_once $file;
@@ -882,7 +882,7 @@
             $class = 'Thin\\' . ucfirst($lib) . 'Core';
         }
 
-        $file = VENDORS_PATH . DS . 'schpill/components/core' . DS . $script;
+        $file = VENDOR . DS . 'schpill/standalone/core' . DS . $script;
 
         if (!file_exists($file)) {
             $file = path('module') . DS . 'core' . DS . $script;
