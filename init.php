@@ -16,5 +16,7 @@
     defined('DS')           || define('DS', DIRECTORY_SEPARATOR);
     defined('PS')           || define('PS', PATH_SEPARATOR);
 
+    require_once __DIR__ . '/../../schpill/thin/src/Helper.php';
+    require_once __DIR__ . '/../../autoload.php';
     require_once __DIR__ . '/../../schpill/thin/src/Loader.php';
     require_once __DIR__ . DS . 'context.php';
