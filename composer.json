@@ -1,0 +1,59 @@
+{
+    "name": "schpill/standalone",
+    "description": "Thin standalone components",
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Gérald Plusquellec",
+            "email": "me@geraldplusquellec.me"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+
+    },
+    "autoload": {
+        "psr-0": {
+            "Box\\": "bundles/",
+            "Raw\\": "bundles/",
+            "Nosql\\": "bundles/",
+            "S3\\": "bundles/",
+            "Blazz\\": "bundles/",
+            "Clue\\": "bundles/",
+            "Handler\\": "bundles/",
+            "Cron\\": "bundles/",
+            "Csv\\": "bundles/",
+            "Dbarray\\": "bundles/",
+            "Dbjson\\": "bundles/",
+            "Dbsql\\": "bundles/",
+            "Dbfile\\": "bundles/",
+            "Dbphp\\": "bundles/",
+            "Dblight\\": "bundles/",
+            "Web\\": "bundles/",
+            "Api\\": "bundles/",
+            "Ws\\": "bundles/",
+            "Utils\\": "bundles/",
+            "Mobi\\": "bundles/",
+            "Ajax\\": "bundles/",
+            "Auth\\": "bundles/",
+            "Front\\": "bundles/",
+            "Fast\\": "bundles/",
+            "Live\\": "bundles/",
+            "Keystore\\": "bundles/",
+            "Crud\\": "bundles/",
+            "Kvs\\": "bundles/",
+            "Mongodm\\": "bundles/",
+            "Phalway\\": "bundles/",
+            "Way\\": "bundles/",
+            "Mvc\\": "bundles/",
+            "Mdo\\": "bundles/",
+            "Mlite\\": "bundles/",
+            "My\\": "bundles/",
+            "Myerror\\": "bundles/",
+            "Mongoo\\": "bundles/",
+            "Dbredis\\": "bundles/",
+            "Mysqldb\\": "bundles/",
+            "Zelift\\": "bundles/"
+        }
+    }
+}
