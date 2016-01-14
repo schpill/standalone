@@ -95,6 +95,17 @@
             return $this;
         }
 
+        public function setnx($key, $value)
+        {
+            if (!$this->has($key)) {
+                $this->hset($key, $value);
+
+                return true;
+            }
+
+            return false;
+        }
+
         public function __set($key, $value)
         {
             return $this->set($key, $value);
@@ -165,6 +176,21 @@
             $this->set($k, $res);
 
             return $res;
+        }
+
+        public function watch($k, callable $exists = null, callable $notExists = null)
+        {
+            if ($this->has($k)) {
+                if (is_callable($exists)) {
+                    return $exists($this->get($k));
+                }
+            } else {
+                if (is_callable($notExists)) {
+                    return $notExists();
+                }
+            }
+
+            return false;
         }
 
         public function delete($key)
@@ -263,6 +289,11 @@
             return strlen($this->get($key));
         }
 
+        public function length($key)
+        {
+            return strlen($this->get($key));
+        }
+
         public function age($key, $ts = false)
         {
             $file = $this->getFile($key);
@@ -322,6 +353,17 @@
             return $this;
         }
 
+        public function hsetnx($hash, $key, $value)
+        {
+            if (!$this->hexists($hash, $key)) {
+                $this->hset($hash, $key, $value);
+
+                return true;
+            }
+
+            return false;
+        }
+
         public function hget($hash, $key, $default = null)
         {
             $file = $this->getHashFile($hash, $key);
@@ -331,6 +373,15 @@
             }
 
             return $default;
+        }
+
+        public function hstrlen($hash, $key)
+        {
+            if ($value = $this->hget($hash, $key)) {
+                return strlen($value);
+            }
+
+            return 0;
         }
 
         public function hgetOr($hash, $k, callable $c)
@@ -344,6 +395,21 @@
             $this->hset($hash, $k, $res);
 
             return $res;
+        }
+
+        public function hwatch($hash, $k, callable $exists = null, callable $notExists = null)
+        {
+            if ($this->hhas($hash, $k)) {
+                if (is_callable($exists)) {
+                    return $exists($this->hget($hash, $k));
+                }
+            } else {
+                if (is_callable($notExists)) {
+                    return $notExists();
+                }
+            }
+
+            return false;
         }
 
         public function hReadAndDelete($hash, $key, $default = null)
@@ -382,6 +448,11 @@
             $file = $this->getHashFile($hash, $key);
 
             return File::exists($file);
+        }
+
+        public function hexists($hash, $key)
+        {
+            return $this->hhas($hash, $key);
         }
 
         public function hage($hash, $key)
@@ -468,21 +539,6 @@
             }
         }
 
-        public function hkeys($hash, $pattern = '*')
-        {
-            $glob = glob($this->dir . DS . $hash . DS . $pattern, GLOB_NOSORT);
-
-            foreach ($glob as $row) {
-                if (fnmatch('*expire.*', $row)) {
-                    continue;
-                }
-
-                $row = str_replace([$this->dir . DS . $hash .DS, '.store'], '', $row);
-
-                yield $row;
-            }
-        }
-
         public function hgetall($hash)
         {
             $glob = glob($this->dir . DS . 'hash.' . $hash . DS . '*.store', GLOB_NOSORT);
@@ -496,6 +552,50 @@
 
                 yield $key;
                 yield unserialize(File::read($row));
+            }
+        }
+
+        public function hvals($hash)
+        {
+            $glob = glob($this->dir . DS . 'hash.' . $hash . DS . '*.store', GLOB_NOSORT);
+
+            foreach ($glob as $row) {
+                if (fnmatch('*expire.*', $row)) {
+                    continue;
+                }
+
+                yield unserialize(File::read($row));
+            }
+        }
+
+        public function hlen($hash)
+        {
+            $i = 0;
+            $glob = glob($this->dir . DS . 'hash.' . $hash . DS . '*.store', GLOB_NOSORT);
+
+            foreach ($glob as $row) {
+                if (fnmatch('*expire.*', $row)) {
+                    continue;
+                }
+
+                $i++;
+            }
+
+            return $i;
+        }
+
+        public function hkeys($hash)
+        {
+            $glob = glob($this->dir . DS . 'hash.' . $hash . DS . '*.store', GLOB_NOSORT);
+
+            foreach ($glob as $row) {
+                if (fnmatch('*expire.*', $row)) {
+                    continue;
+                }
+
+                $key = str_replace('.store', '', Arrays::last(explode(DS, $row)));
+
+                yield $key;
             }
         }
 
