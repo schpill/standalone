@@ -584,6 +584,17 @@
             return $i;
         }
 
+        public function hremove($hash)
+        {
+            $glob = glob($this->dir . DS . 'hash.' . $hash . DS . '*.store', GLOB_NOSORT);
+
+            foreach ($glob as $row) {
+                File::delete($row);
+            }
+
+            return true;
+        }
+
         public function hkeys($hash)
         {
             $glob = glob($this->dir . DS . 'hash.' . $hash . DS . '*.store', GLOB_NOSORT);
