@@ -18,7 +18,7 @@
 
         public function __construct($ns = 'core')
         {
-            $native = Config::get('dir.ephemere', '/tmp');
+            $native = Config::get('dir.ephemere', session_save_path());
 
             $this->dir = $native . DS . $ns;
 
@@ -40,6 +40,17 @@
             touch($file, $expire);
 
             return $this;
+        }
+
+        public function setnx($key, $value)
+        {
+            if (!$this->has($key)) {
+                $this->set($key, $value);
+
+                return true;
+            }
+
+            return false;
         }
 
         public function setExpireAt($k, $v, $timestamp)
@@ -112,6 +123,21 @@
             $this->set($k, $res, $e);
 
             return $res;
+        }
+
+        public function watch($k, callable $exists = null, callable $notExists = null)
+        {
+            if ($this->has($k)) {
+                if (is_callable($exists)) {
+                    return $exists($this->get($k));
+                }
+            } else {
+                if (is_callable($notExists)) {
+                    return $notExists();
+                }
+            }
+
+            return false;
         }
 
         public function session($k, $v = 'dummyget', $e = null)
@@ -225,22 +251,18 @@
 
         public function keys($pattern = '*')
         {
-            $keys = glob($this->dir . DS . $pattern . '.eph');
-
-            $collection = [];
+            $keys = glob($this->dir . DS . $pattern . '.eph', GLOB_NOSORT);
 
             foreach ($keys as $key) {
                 $k = str_replace([$this->dir . DS, '.eph'], '', $key);
 
-                $collection[] = $k;
+                yield $k;
             }
-
-            return $collection;
         }
 
         public function flush($pattern = '*')
         {
-            $keys = glob($this->dir . DS . $pattern . '.eph');
+            $keys = glob($this->dir . DS . $pattern . '.eph', GLOB_NOSORT);
 
             $affected = 0;
 
@@ -254,7 +276,7 @@
 
         public function clean($pattern = '*')
         {
-            $keys = glob($this->dir . DS . $pattern . '.eph');
+            $keys = glob($this->dir . DS . $pattern . '.eph', GLOB_NOSORT);
 
             $affected = 0;
 
@@ -268,5 +290,209 @@
             }
 
             return $affected;
+        }
+
+        public function readAndDelete($key, $default = null)
+        {
+            if ($this->has($key)) {
+                $value = $this->get($key);
+
+                $this->delete($key);
+
+                return $value;
+            }
+
+            return $default;
+        }
+
+        public function rename($keyFrom, $keyTo, $default = null)
+        {
+            $value = $this->readAndDelete($keyFrom, $default);
+
+            return $this->set($keyTo, $value);
+        }
+
+        public function copy($keyFrom, $keyTo)
+        {
+            return $this->set($keyTo, $this->get($keyFrom));
+        }
+
+        public function getSize($key)
+        {
+            return strlen($this->get($key));
+        }
+
+        public function length($key)
+        {
+            return strlen($this->get($key));
+        }
+
+        public function hset($hash, $key, $value)
+        {
+            $key = "hash.$hash.$key";
+
+            return $this->set($key, $value);
+        }
+
+        public function hsetnx($hash, $key, $value)
+        {
+            if (!$this->hexists($hash, $key)) {
+                $this->hset($hash, $key, $value);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public function hget($hash, $key, $default = null)
+        {
+            $key = "hash.$hash.$key";
+
+            return $this->get($key, $default);
+        }
+
+        public function hstrlen($hash, $key)
+        {
+            if ($value = $this->hget($hash, $key)) {
+                return strlen($value);
+            }
+
+            return 0;
+        }
+
+        public function hgetOr($hash, $k, callable $c)
+        {
+            if ($this->hexists($hash, $k)) {
+                return $this->hget($hash, $k);
+            }
+
+            $res = $c();
+
+            $this->hset($hash, $k, $res);
+
+            return $res;
+        }
+
+        public function hwatch($hash, $k, callable $exists = null, callable $notExists = null)
+        {
+            if ($this->hexists($hash, $k)) {
+                if (is_callable($exists)) {
+                    return $exists($this->hget($hash, $k));
+                }
+            } else {
+                if (is_callable($notExists)) {
+                    return $notExists();
+                }
+            }
+
+            return false;
+        }
+
+        public function hReadAndDelete($hash, $key, $default = null)
+        {
+            if ($this->hexists($hash, $key)) {
+                $value = $this->hget($hash, $key);
+
+                $this->hdelete($hash, $key);
+
+                return $value;
+            }
+
+            return $default;
+        }
+
+        public function hdelete($hash, $key)
+        {
+            $key = "hash.$hash.$key";
+
+            return $this->delete($key);
+        }
+
+        public function hdel($hash, $key)
+        {
+            return $this->hdelete($hash, $key);
+        }
+
+        public function hhas($hash, $key)
+        {
+            $key = "hash.$hash.$key";
+
+            return $this->has($key);
+        }
+
+        public function hexists($hash, $key)
+        {
+            return $this->hhas($hash, $key);
+        }
+
+        public function hincr($hash, $key, $by = 1)
+        {
+            $old = $this->hget($hash, $key, 1);
+            $new = $old + $by;
+
+            $this->hset($hash, $key, $new);
+
+            return $new;
+        }
+
+        public function hdecr($hash, $key, $by = 1)
+        {
+            $old = $this->hget($hash, $key, 1);
+            $new = $old - $by;
+
+            $this->hset($hash, $key, $new);
+
+            return $new;
+        }
+
+        public function hgetall($hash)
+        {
+            $keys = glob($this->dir . DS . 'hash.' . $hash . '.*.eph', GLOB_NOSORT);
+
+            foreach ($keys as $row) {
+                $key = str_replace('.eph', '', Arrays::last(explode(DS, $row)));
+
+                yield $key;
+                yield unserialize(File::read($row));
+            }
+        }
+
+        public function hvals($hash)
+        {
+            $keys = glob($this->dir . DS . 'hash.' . $hash . '.*.eph', GLOB_NOSORT);
+
+            foreach ($keys as $row) {
+                yield unserialize(File::read($row));
+            }
+        }
+
+        public function hlen($hash)
+        {
+            $keys = glob($this->dir . DS . 'hash.' . $hash . '.*.eph', GLOB_NOSORT);
+
+            return count($keys);
+        }
+
+        public function hremove($hash)
+        {
+            $keys = glob($this->dir . DS . 'hash.' . $hash . '.*.eph', GLOB_NOSORT);
+
+            foreach ($keys as $row) {
+                File::delete($row);
+            }
+
+            return true;
+        }
+
+        public function hkeys($hash)
+        {
+            $keys = glob($this->dir . DS . 'hash.' . $hash . '.*.eph', GLOB_NOSORT);
+
+            foreach ($keys as $row) {
+                $key = str_replace('.eph', '', Arrays::last(explode(DS, $row)));
+
+                yield $key;
+            }
         }
     }

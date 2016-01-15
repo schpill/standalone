@@ -96,6 +96,21 @@
         throw new $class($message);
     }
 
+    function factory($type, $native = null)
+    {
+        loader('dyn');
+
+        $what   = ucfirst(Inflector::camelize($type . '_factory'));
+        $class  = 'Thin\\' . $what;
+
+        if (!class_exists($class)) {
+            $code = 'namespace Thin; class ' . $what . ' extends DynLib {}';
+            eval($code);
+        }
+
+        return new $class($native);
+    }
+
     function uploadFile($field, $name)
     {
         $bucket = container()->bucket();
@@ -180,15 +195,15 @@
     function s3()
     {
         $client = \Aws\S3\S3Client::factory([
-            'credentials' => [
-                'key'    => Config::get('aws.access_key'),
-                'secret' => Config::get('aws.secret_key')
+            'credentials'   => [
+                'key'       => Config::get('aws.access_key'),
+                'secret'    => Config::get('aws.secret_key')
             ],
-            'region' => 'eu-west-1',
-            'version' => 'latest',
+            'region'        => Config::get('aws.region', 'eu-west-1'),
+            'version'       => Config::get('aws.version', 'latest'),
         ]);
 
-        $s3Adapter  = new \League\Flysystem\AwsS3v3\AwsS3Adapter($client, 'clippcity');
+        $s3Adapter  = new \League\Flysystem\AwsS3v3\AwsS3Adapter($client, Config::get('s3.bucket'));
         $cacheStore = new \League\Flysystem\Cached\Storage\Memory();
         $adapter    = new \League\Flysystem\Cached\CachedAdapter($s3Adapter, $cacheStore);
 
