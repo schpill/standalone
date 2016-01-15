@@ -141,6 +141,63 @@
             return $this->match('GET|POST|PUT|DELETE|OPTIONS|PATCH|HEAD', $pattern, $cb);
         }
 
+        public function model($model)
+        {
+            $this->match('GET', $model . '/list', function () use ($model) {
+                $_REQUEST['model'] = $model;
+
+                return ['model', 'list'];
+            });
+
+            $this->match('GET', $model . '/create', function () use ($model) {
+                $_REQUEST['model'] = $model;
+
+                return ['model', 'create'];
+            });
+
+            $this->match('GET', $model . '/show/(.*)', function ($id) use ($model) {
+                $_REQUEST['model'] = $model;
+                $_REQUEST['id'] = $id;
+
+                return ['model', 'show'];
+            });
+
+            $this->match('GET', $model . '/edit/(.*)', function ($id) use ($model) {
+                $_REQUEST['model']  = $model;
+                $_REQUEST['id']     = $id;
+
+                return ['model', 'edit'];
+            });
+
+            $this->match('PUT', $model . '/update/(.*)', function ($id) use ($model) {
+                $_REQUEST['model']  = $model;
+                $_REQUEST['id']     = $id;
+
+                return ['model', 'update'];
+            });
+
+            $this->match('PATCH', $model . '/update/(.*)', function ($id) use ($model) {
+                $_REQUEST['model']  = $model;
+                $_REQUEST['id']     = $id;
+
+                return ['model', 'update'];
+            });
+
+            $this->match('DELETE', $model . '/delete/(.*)', function ($id) use ($model) {
+                $_REQUEST['model']  = $model;
+                $_REQUEST['id']     = $id;
+
+                return ['model', 'delete'];
+            });
+
+            return $this->match('POST', $model . '/store', function () use ($model) {
+                $_POST['model'] = $model;
+                $_POST['data']  = $_POST;
+
+                return ['model', 'store'];
+            });
+        }
+
         public function match($methods, $pattern, $cb)
         {
             $pattern = $this->baseRoute . '/' . trim($pattern, '/');
