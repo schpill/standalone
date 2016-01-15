@@ -98,7 +98,7 @@
         public function setnx($key, $value)
         {
             if (!$this->has($key)) {
-                $this->hset($key, $value);
+                $this->set($key, $value);
 
                 return true;
             }
@@ -648,5 +648,122 @@
                     }
                 }
             }
+        }
+
+        public function sadd($key, $value)
+        {
+            $tab = $this->get($key, []);
+            $tab[] = $value;
+
+            return $this->set($key, $tab);
+        }
+
+        public function scard($key)
+        {
+            $tab = $this->get($key, []);
+
+            return count($tab);
+        }
+
+        public function sinter()
+        {
+            $tab = [];
+
+            foreach (func_get_args() as $key) {
+                $tab = array_intersect($tab, $this->get($key, []));
+            }
+
+            return $tab;
+        }
+
+        public function sunion()
+        {
+            $tab = [];
+
+            foreach (func_get_args() as $key) {
+                $tab = array_merge($tab, $this->get($key, []));
+            }
+
+            return $tab;
+        }
+
+        public function sinterstore()
+        {
+            $args = func_get_args();
+
+            $destination = array_shift($args);
+
+            $tab = [];
+
+            foreach ($args as $key) {
+                $tab = array_intersect($tab, $this->get($key, []));
+            }
+
+            return $this->set($destination, $tab);
+        }
+
+        public function sunionstore()
+        {
+            $args = func_get_args();
+
+            $destination = array_shift($args);
+
+            $tab = [];
+
+            foreach ($args as $key) {
+                $tab = array_merge($tab, $this->get($key, []));
+            }
+
+            return $this->set($destination, $tab);
+        }
+
+        public function sismember($hash, $key)
+        {
+            return in_array($key, $this->get($hash, []));
+        }
+
+        public function smembers($key)
+        {
+            return $this->get($key, []);
+        }
+
+        public function srem($hash, $key)
+        {
+            $tab = $this->get($hash, []);
+
+            $new = [];
+
+            $exists = false;
+
+            foreach ($tab as $row) {
+                if ($row != $key) {
+                    $new[] = $row;
+                } else {
+                    $exists = true;
+                }
+            }
+
+            if ($exists) {
+                $this->set($hash, $new);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public function smove($from, $to, $key)
+        {
+            if ($this->sismember($from, $key)) {
+                $this->srem($from, $key);
+
+                if (!$this->sismember($to, $key)) {
+                    $this->sadd($to, $key);
+                }
+
+                return true;
+            }
+
+            return false;
         }
     }
