@@ -18,7 +18,6 @@
         {
             $this->request  = core('request');
             $this->response = core('response');
-            forever();
 
             core('registry')->set('app.controller', $this);
 
