@@ -40,8 +40,10 @@
          */
         private function check()
         {
-            if (session_id() == '') {
-                session_start();
+            if (Config::get('check.session', true)) {
+                if (session_id() == '') {
+                    session_start();
+                }
             }
 
             if (!isset($_SESSION['infos_' . session_id()])) {
