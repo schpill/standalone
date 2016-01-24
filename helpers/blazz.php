@@ -202,6 +202,10 @@
                 }
 
                 foreach ($conditions as $k => $v) {
+                    if (!isset($row[$k])) {
+                        return false;
+                    }
+
                     if ($row[$k] != $v) {
                         return false;
                     }

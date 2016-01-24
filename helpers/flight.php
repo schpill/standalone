@@ -284,6 +284,89 @@
         {
             return new FlightModel($this, $data);
         }
+
+        public function firstOrCreate($conditions)
+        {
+            $row = lib('array')->first($this->all(), function ($k, $row) use ($conditions) {
+                if (!isset($row['id'])) {
+                    return false;
+                }
+
+                foreach ($conditions as $k => $v) {
+                    if (!isset($row[$k])) {
+                        return false;
+                    }
+
+                    if ($row[$k] != $v) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }, null);
+
+            if (!$row) {
+                return $this->save($conditions, true);
+            } else {
+                return $this->model($row);
+            }
+        }
+
+        public function firstOrNew($conditions)
+        {
+            $row = lib('array')->first($this->all(), function ($row) use ($conditions) {
+                foreach ($conditions as $k => $v) {
+                    if ($row[$k] != $v) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }, null);
+
+            if (!$row) {
+                return $this->model($conditions);
+            } else {
+                return $this->model($row);
+            }
+        }
+
+        public function first($model = false)
+        {
+            if (!$this->res) {
+                $this->res = coll($this->all());
+            }
+
+            $row = $this->res->first();
+
+            return $model ? $this->model($row) : $row;
+        }
+
+        public function last($model = false)
+        {
+            if (!$this->res) {
+                $this->res = coll($this->all());
+            }
+
+            $row = $this->res->last();
+
+            return $model ? $this->model($row) : $row;
+        }
+
+        public function count()
+        {
+            if (!$this->res) {
+                $this->res = coll($this->all());
+            }
+
+            $last = $this->res;
+
+            $count = $this->res->count();
+
+            $this->res = $last;
+
+            return $count;
+        }
     }
 
     class FlightCursor implements Countable, Iterator
