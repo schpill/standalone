@@ -593,7 +593,7 @@
                                 $field = $func . '_id';
 
                                 if (is_bool($object) && isset($this->storage[$field])) {
-                                    return $db->find($value, $object);
+                                    return $db->find($this->storage[$field], $object);
                                 } elseif (is_object($object)) {
                                     $this->$field = (int) $object->id;
 
@@ -610,7 +610,13 @@
                             if (is_callable($this->$func)) {
                                 $args = array_merge([$this], $args);
 
-                                return call_user_func_array($this->$func, $args);
+                                $res = call_user_func_array($this->$func, $args);
+
+                                if (strstr($res, '{')) {
+                                    return json_decode($res, true);
+                                }
+
+                                return $res;
                             }
 
                             throw new Exception("$func is not a model function of " . $this->db()->db());
@@ -1138,7 +1144,7 @@
 
         public function pivot($model)
         {
-            if (is_object($model)) {
+            if (is_object($model) && !$model instanceof self) {
                 $model = $model->model();
             }
 
