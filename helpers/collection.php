@@ -82,7 +82,7 @@
 				$results = array_merge($results, $values);
 			}
 
-			return new static($results);
+			return $this->new($results);
 		}
 
 		/**
@@ -115,7 +115,7 @@
 		 */
 		public function diff($items)
 		{
-			return new static(array_diff($this->items, $this->getArrayableItems($items)));
+			return $this->new(array_diff($this->items, $this->getArrayableItems($items)));
 		}
 
 		/**
@@ -139,7 +139,7 @@
 		 */
 		public function fetch($key)
 		{
-			return new static(lib('array')->fetch($this->items, $key));
+			return $this->new(lib('array')->fetch($this->items, $key));
 		}
 
 		/**
@@ -150,7 +150,7 @@
 		 */
 		public function filter(callable $callback)
 		{
-			return new static(array_filter($this->items, $callback));
+			return $this->new(array_filter($this->items, $callback));
 		}
 
 		/**
@@ -188,7 +188,7 @@
 		 */
 		public function flatten()
 		{
-			return new static(lib('array')->flatten($this->items));
+			return $this->new(lib('array')->flatten($this->items));
 		}
 
 		/**
@@ -198,7 +198,7 @@
 		 */
 		public function flip()
 		{
-			return new static(array_flip($this->items));
+			return $this->new(array_flip($this->items));
 		}
 
 		/**
@@ -246,13 +246,13 @@
 				$groupKey = $groupBy($value, $key);
 
 				if ( ! array_key_exists($groupKey, $results)) {
-					$results[$groupKey] = new static;
+					$results[$groupKey] = $this->new([]);
 				}
 
 				$results[$groupKey]->push($value);
 			}
 
-			return new static($results);
+			return $this->new($results);
 		}
 
 		/**
@@ -297,7 +297,7 @@
 				$results[$keyBy($item)] = $item;
 			}
 
-			return new static($results);
+			return $this->new($results);
 		}
 
 		/**
@@ -323,7 +323,7 @@
 				}
 			}
 
-			return new static($results);
+			return $this->new($results);
 		}
 
 		/**
@@ -363,7 +363,7 @@
 		 */
 		public function intersect($items)
 		{
-			return new static(array_intersect($this->items, $this->getArrayableItems($items)));
+			return $this->new(array_intersect($this->items, $this->getArrayableItems($items)));
 		}
 
 		/**
@@ -394,7 +394,7 @@
 		 */
 		public function keys()
 		{
-			return new static(array_keys($this->items));
+			return $this->new(array_keys($this->items));
 		}
 
 		/**
@@ -427,7 +427,7 @@
 		 */
 		public function map(callable $callback)
 		{
-			return new static(array_map($callback, $this->items, array_keys($this->items)));
+			return $this->new(array_map($callback, $this->items, array_keys($this->items)));
 		}
 
 		/**
@@ -438,7 +438,7 @@
 		 */
 		public function merge($items)
 		{
-			return new static(array_merge($this->items, $this->getArrayableItems($items)));
+			return $this->new(array_merge($this->items, $this->getArrayableItems($items)));
 		}
 
 		/**
@@ -450,7 +450,7 @@
 		 */
 		public function forPage($page, $perPage)
 		{
-			return new static(array_slice($this->items, ($page - 1) * $perPage, $perPage));
+			return $this->new(array_slice($this->items, ($page - 1) * $perPage, $perPage));
 		}
 
 		/**
@@ -564,7 +564,7 @@
 		 */
 		public function reverse()
 		{
-			return new static(array_reverse($this->items, true));
+			return $this->new(array_reverse($this->items, true));
 		}
 
 		/**
@@ -610,7 +610,7 @@
 
 	        shuffle($items);
 
-	        return new static($items);
+	        return $this->new($items);
 		}
 
 		/**
@@ -623,7 +623,7 @@
 
 	        shuffle($items);
 
-	        return new static($items);
+	        return $this->new($items);
 		}
 
 		/**
@@ -636,7 +636,7 @@
 		 */
 		public function slice($offset, $length = null)
 	    {
-	        return new static(array_slice($this->items, $offset, $length, true));
+	        return $this->new(array_slice($this->items, $offset, $length, true));
 	    }
 
 		/**
@@ -650,10 +650,10 @@
 	        $chunks = [];
 
 	        foreach (array_chunk($this->items, $size, true) as $chunk) {
-	            $chunks[] = new static($chunk);
+	            $chunks[] = $this->new($chunk);
 	        }
 
-	        return new static($chunks);
+	        return $this->new($chunks);
 	    }
 
 		/**
@@ -674,7 +674,7 @@
 	            return ($a < $b) ? -1 : 1;
 	        });
 
-	        return new static($items);
+	        return $this->new($items);
 	    }
 
 		/**
@@ -731,10 +731,10 @@
 	    public function splice($offset, $length = null, $replacement = [])
 	    {
 	        if (func_num_args() == 1) {
-	            return new static(array_splice($this->items, $offset));
+	            return $this->new(array_splice($this->items, $offset));
 	        }
 
-	        return new static(array_splice($this->items, $offset, $length, $replacement));
+	        return $this->new(array_splice($this->items, $offset, $length, $replacement));
 	    }
 
 		/**
@@ -814,7 +814,7 @@
 		public function unique($key = null)
 	    {
 	        if (is_null($key)) {
-	            return new static(array_unique($this->items, SORT_REGULAR));
+	            return $this->new(array_unique($this->items, SORT_REGULAR));
 	        }
 
 	        $key = $this->valueRetriever($key);
@@ -837,7 +837,7 @@
 		 */
 		public function values()
 		{
-			return new static(array_values($this->items));
+			return $this->new(array_values($this->items));
 		}
 
 		/**
@@ -869,10 +869,10 @@
 	        }, func_get_args());
 
 	        $params = array_merge([function () {
-	            return new static(func_get_args());
+	            return $this->new(func_get_args());
 	        }, $this->items], $arrayableItems);
 
-	        return new static(call_user_func_array('array_map', $params));
+	        return $this->new(call_user_func_array('array_map', $params));
 	    }
 
 		/**
@@ -1308,7 +1308,7 @@
 
         public function fromJson($json)
         {
-        	return new self(json_decode($json, true));
+        	return $this->new(json_decode($json, true));
         }
 
         public function multisort($criteria)
@@ -1333,15 +1333,37 @@
 
   			$sorted = $this->sort($comparer);
 
-			return new static($sorted->values()->toArray());
+			return $this->new($sorted->values()->toArray());
 		}
 
         public function __call($m, $a)
         {
         	if ($m == 'new') {
-        		return call_user_func_array([$this, 'make'], $a);
+        		return new self(current($a));
         	} elseif ($m == 'list') {
         		return call_user_func_array([$this, 'lists'], $a);
         	}
+        }
+
+        public function __set($key, $value)
+        {
+        	$this->items[$key] = $value;
+
+        	return $this;
+        }
+
+        public function __isset($key)
+        {
+        	return $this->offsetExists($key);
+        }
+
+        public function __unset($key)
+        {
+        	return $this->forget($key);
+        }
+
+        public function __get($key)
+        {
+        	return isAke($this->items, $key, null);
         }
 	}
