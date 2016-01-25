@@ -984,4 +984,20 @@
         $default;
     }
 
+    function r($type = null)
+    {
+        $type = is_null($type) ? $_REQUEST : $type;
+
+        return coll($type);
+    }
+
+    function lib($lib, $args = [])
+    {
+        try {
+            return \lib($lib, $args);
+        } catch (\Exception $e) {
+            return \lib('app')->make($lib, $args);
+        }
+    }
+
     require_once __DIR__ . DS . 'traits.php';

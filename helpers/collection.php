@@ -1281,6 +1281,11 @@
             return $collection;
         }
 
+        public function query()
+        {
+        	return call_user_func_array([$this, 'q'], func_get_args());
+        }
+
         public function save($file)
         {
         	$array = array_values($this->toArray());
@@ -1304,5 +1309,39 @@
         public function fromJson($json)
         {
         	return new self(json_decode($json, true));
+        }
+
+        public function multisort($criteria)
+        {
+ 			$comparer = function ($first, $second) use ($criteria) {
+    			foreach ($criteria as $key => $orderType) {
+      				$orderType = strtolower($orderType);
+
+      				if (!isset($first[$key]) || !isset($second[$key])) {
+      					return false;
+      				}
+
+			      	if ($first[$key] < $second[$key]) {
+			        	return $orderType === "asc" ? -1 : 1;
+			      	} else if ($first[$key] > $second[$key]) {
+			        	return $orderType === "asc" ? 1 : -1;
+			      	}
+    			}
+
+    			return false;
+  			};
+
+  			$sorted = $this->sort($comparer);
+
+			return new static($sorted->values()->toArray());
+		}
+
+        public function __call($m, $a)
+        {
+        	if ($m == 'new') {
+        		return call_user_func_array([$this, 'make'], $a);
+        	} elseif ($m == 'list') {
+        		return call_user_func_array([$this, 'lists'], $a);
+        	}
         }
 	}
