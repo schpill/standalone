@@ -1016,13 +1016,24 @@
             return $this->_accept;
         }
 
-        public function root($what = '/')
+        public function getRootUri()
         {
-            $protocol   = isset($_SERVER["HTTPS"]) ? 'https://' : 'http://';
-            $domain     = $_SERVER['HTTP_HOST'];
-            $docRoot    = $_SERVER['DOCUMENT_ROOT'];
+            $scriptName = $_SERVER['SCRIPT_NAME'];
+            $requestUri = $_SERVER['REQUEST_URI'];
+            $queryString = isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
 
-            return $protocol . $domain . substr(__DIR__, strlen($docRoot)) . $what;
+            if (strpos($requestUri, $scriptName) !== false) {
+                $physicalPath = $scriptName;
+            } else {
+                $physicalPath = str_replace('\\', '', dirname($scriptName));
+            }
+
+            return rtrim($physicalPath, '/');
+        }
+
+        public function setUrl($what = '')
+        {
+            return $this->getRootUri . $what;
         }
     }
 

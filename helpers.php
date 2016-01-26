@@ -1058,4 +1058,18 @@
         return new $instanciate($class, $data);
     }
 
+    function logg($message, $type = 'info')
+    {
+        static $i;
+
+        if (!$i) {
+            $i = core('log');
+        }
+
+        return call_user_func_array(
+            [$i, $type],
+            [$message]
+        );
+    }
+
     require_once __DIR__ . DS . 'traits.php';
