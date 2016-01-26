@@ -38,24 +38,28 @@
             return null;
         }
 
-        public function delete()
+        public function delete(callable $before = null, callable $after = null)
         {
             if ($db = $this->db()) {
                 $id = isAke($this->storage, 'id', false);
 
                 if (false !== $id) {
-                    $hook = isAke($this->_hooks, 'beforeDelete', false);
+                    if (!$before) {
+                        $before = isAke($this->_hooks, 'beforeDelete', null);
+                    }
 
-                    if ($hook) {
-                        call_user_func_array($hook, [$this]);
+                    if ($before) {
+                        call_user_func_array($before, [$this]);
                     }
 
                     $res = $this->db()->delete((int) $id);
 
-                    $hook = isAke($this->_hooks, 'afterDelete', false);
+                    if (!$after) {
+                        $after = isAke($this->_hooks, 'afterDelete', null);
+                    }
 
-                    if ($hook) {
-                        call_user_func_array($hook, [$this]);
+                    if ($after) {
+                        call_user_func_array($after, [$this]);
                     }
 
                     return $res;
@@ -65,7 +69,7 @@
             return false;
         }
 
-        public function save()
+        public function save(callable $validate = null, callable $before = null, callable $after = null)
         {
             if ($db = $this->db()) {
                 $check  = true;
@@ -80,10 +84,12 @@
                     }
                 }
 
-                $hook = isAke($this->_hooks, 'validate', false);
+                if (!$validate) {
+                    $validate = isAke($this->_hooks, 'validate', null);
+                }
 
-                if ($hook) {
-                    $check = call_user_func_array($hook, [$this->storage]);
+                if ($validate) {
+                    $check = call_user_func_array($validate, [$this->storage]);
                 }
 
                 if (true !== $check) {
@@ -91,26 +97,34 @@
                 }
 
                 if ($id) {
-                    $hook   = isAke($this->_hooks, 'beforeUpdate', false);
+                    if (!$before) {
+                        $before = isAke($this->_hooks, 'beforeUpdate', null);
+                    }
                 } else {
                     $create = true;
-                    $hook   = isAke($this->_hooks, 'beforeCreate', false);
+                    if (!$before) {
+                        $before = isAke($this->_hooks, 'beforeCreate', null);
+                    }
                 }
 
-                if ($hook) {
+                if ($before) {
                     call_user_func_array($hook, [$this]);
                 }
 
                 $row = $this->db()->save($this->storage);
 
                 if ($create) {
-                    $hook = isAke($this->_hooks, 'afterCreate', false);
+                    if (!$after) {
+                        $after = isAke($this->_hooks, 'afterCreate', null);
+                    }
                 } else {
-                    $hook = isAke($this->_hooks, 'afterUpdate', false);
+                    if (!$after) {
+                        $after = isAke($this->_hooks, 'afterUpdate', null);
+                    }
                 }
 
-                if ($hook) {
-                    call_user_func_array($hook, [$row]);
+                if ($after) {
+                    call_user_func_array($after, [$row]);
                 }
 
                 return $row;
@@ -219,7 +233,6 @@
 
             return $check != isAke($this->storage, $key, $check);
         }
-
 
         public function del($key)
         {
@@ -593,7 +606,7 @@
                                 $field = $func . '_id';
 
                                 if (is_bool($object) && isset($this->storage[$field])) {
-                                    return $db->find($this->storage[$field], $object);
+                                    return $db->find($value, $object);
                                 } elseif (is_object($object)) {
                                     $this->$field = (int) $object->id;
 
@@ -610,13 +623,7 @@
                             if (is_callable($this->$func)) {
                                 $args = array_merge([$this], $args);
 
-                                $res = call_user_func_array($this->$func, $args);
-
-                                if (strstr($res, '{')) {
-                                    return json_decode($res, true);
-                                }
-
-                                return $res;
+                                return call_user_func_array($this->$func, $args);
                             }
 
                             throw new Exception("$func is not a model function of " . $this->db()->db());
@@ -1144,7 +1151,7 @@
 
         public function pivot($model)
         {
-            if (is_object($model) && !$model instanceof self) {
+            if (is_object($model)) {
                 $model = $model->model();
             }
 
@@ -1264,4 +1271,18 @@
             return $dbFk->where([$idFk, '=', $this->storage['id']])->get();
         }
 
+        public function check($cb = null)
+        {
+            $check = true;
+
+            if (!$cb) {
+                $cb = isAke($this->_hooks, 'validate', null);
+            }
+
+            if ($cb) {
+                $check = call_user_func_array($cb, [$this->storage]);
+            }
+
+            return $check;
+        }
     }

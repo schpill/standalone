@@ -25,7 +25,7 @@
 
             $this->store    = lib('now', ['blazz']);
 
-            $dir = Config::get('dir.flat.store', '/tmp');
+            $dir = Config::get('dir.flat.store', session_save_path());
 
             if (!is_dir($dir)) {
                 File::mkdir($dir);
@@ -202,10 +202,6 @@
                 }
 
                 foreach ($conditions as $k => $v) {
-                    if (!isset($row[$k])) {
-                        return false;
-                    }
-
                     if ($row[$k] != $v) {
                         return false;
                     }
@@ -225,10 +221,6 @@
         {
             $row = lib('array')->first($this->collection(), function ($row) use ($conditions) {
                 foreach ($conditions as $k => $v) {
-                    if (!isset($row[$k])) {
-                        return false;
-                    }
-
                     if ($row[$k] != $v) {
                         return false;
                     }
@@ -394,7 +386,7 @@
 
         public function model(array $data = [])
         {
-            return lib('model', [$this, $data]);
+            return loadModel($this, $data);
         }
 
         public function db()

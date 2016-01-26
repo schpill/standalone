@@ -20,7 +20,7 @@
             $this->db       = is_null($db) ? SITE_NAME : $db;
             $this->table    = is_null($table) ? 'core' : $table;
 
-            $dir = Config::get('dir.flat.store', '/tmp');
+            $dir = Config::get('dir.flat.store', session_save_path());
 
             if (!is_dir($dir)) {
                 File::mkdir($dir);

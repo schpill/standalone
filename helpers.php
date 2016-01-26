@@ -1000,4 +1000,62 @@
         }
     }
 
+    function loadModel($class, $data)
+    {
+        $typeModel  = str_replace(['Thin\\', 'Lib'], '', get_class($class));
+        $db         = $class->db();
+        $table      = $class->table();
+        $dir        = path('module') . DS . 'models' . DS . $typeModel;
+
+        $modelFile = $dir . DS . Inflector::lower($db) . DS . ucfirst(Inflector::lower($table)) . '.php';
+
+        if (!is_dir(path('module') . DS . 'models')) {
+            File::mkdir(path('module') . DS . 'models');
+        }
+
+        if (!is_dir($dir)) {
+            File::mkdir($dir);
+        }
+
+        if (!is_dir($dir . DS . Inflector::lower($db))) {
+            File::mkdir($dir . DS . Inflector::lower($db));
+        }
+
+        if (!File::exists($modelFile)) {
+            $tpl = '<?php
+    namespace Thin;
+
+    loader("model");
+
+    class ' . $typeModel . ucfirst(Inflector::lower($db)) . ucfirst(Inflector::lower($table)) . 'Model extends ModelLib {
+        /* Make hooks of model */
+        public function _hooks()
+        {
+            $obj = $this;
+            // $this->_hooks[\'beforeCreate\'] = function () use ($obj) {};
+            // $this->_hooks[\'beforeRead\'] = ;
+            // $this->_hooks[\'beforeUpdate\'] = ;
+            // $this->_hooks[\'beforeDelete\'] = ;
+            // $this->_hooks[\'afterCreate\'] = ;
+            // $this->_hooks[\'afterRead\'] = ;
+            // $this->_hooks[\'afterUpdate\'] = ;
+            // $this->_hooks[\'afterDelete\'] = ;
+            // $this->_hooks[\'validate\'] = function () use ($data) {
+            //     return true;
+            // };
+        }
+    }';
+
+            File::put($modelFile, $tpl);
+        }
+
+        $instanciate = '\\Thin\\' . $typeModel . ucfirst(Inflector::lower($db)) . ucfirst(Inflector::lower($table)) . 'Model';
+
+        if (!class_exists($instanciate)) {
+            require_once $modelFile;
+        }
+
+        return new $instanciate($class, $data);
+    }
+
     require_once __DIR__ . DS . 'traits.php';

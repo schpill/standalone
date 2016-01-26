@@ -318,7 +318,7 @@
 
         public function model(array $data = [])
         {
-            return lib('model', [$this, $data]);
+            return loadModel($this, $data);
         }
 
         public function db()
