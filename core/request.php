@@ -1015,5 +1015,14 @@
 
             return $this->_accept;
         }
+
+        public function root($what = '/')
+        {
+            $protocol   = isset($_SERVER["HTTPS"]) ? 'https://' : 'http://';
+            $domain     = $_SERVER['HTTP_HOST'];
+            $docRoot    = $_SERVER['DOCUMENT_ROOT'];
+
+            return $protocol . $domain . substr(__DIR__, strlen($docRoot)) . $what;
+        }
     }
 
