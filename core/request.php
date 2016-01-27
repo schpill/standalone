@@ -1033,7 +1033,7 @@
 
         public function setUrl($what = '')
         {
-            return $this->getRootUri . $what;
+            return $this->getRootUri() . $what;
         }
     }
 
