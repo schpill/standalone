@@ -10,7 +10,7 @@
     ],
     "minimum-stability": "dev",
     "require": {
-
+        "filp/whoops": "2.0.0-alpha2"
     },
     "autoload": {
         "psr-0": {
