@@ -1285,4 +1285,22 @@
 
             return $check;
         }
+
+        public function schema()
+        {
+            $lib = dyn($this);
+
+            $lib->fn('create', function ($cb) use ($lib) {
+                $db     = $lib->getNative()->db()->db();
+                $table  = $lib->getNative()->db()->table();
+
+                $obj = lib('fluent', [['fluent_type' => 'blueprint', 'db_db' => $db, 'db_table' => $table, 'db_fields' => []]]);
+
+                $cb($obj);
+
+                return $obj;
+            });
+
+            return $lib;
+        }
     }

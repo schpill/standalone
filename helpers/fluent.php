@@ -6,7 +6,7 @@
      * @version    1.0
      * @author     Gerald Plusquellec
      * @license    BSD License
-     * @copyright  1996 - 2015 Gerald Plusquellec
+     * @copyright  1996 - 2016 Gerald Plusquellec
      * @link       http://github.com/schpill/thin
      */
     namespace Thin;
@@ -228,10 +228,30 @@
 
                 return $this->del($k);
             } else {
-				$method = Inflector::uncamelize($m);
-				$this->attributes[$method] = !empty($a) ? reset($a) : true;
+                if (!isset($this->attributes['fluent_type'])) {
+    				$method = Inflector::uncamelize($m);
+    				$this->attributes[$method] = !empty($a) ? reset($a) : true;
 
-				return $this;
+    				return $this;
+                } else {
+                    if ('blueprint' == $this->attributes['fluent_type']) {
+                        $actions = ['length', 'unique', 'index', 'required', 'default', 'pattern'];
+                        $types = ['varchar', 'string', 'date', 'datetime', 'timestamp', 'boolean', 'json', 'string', 'file', 'link', 'email', 'image', 'video', 'char', 'text', 'int', 'float', 'double', 'enum', 'array', 'object', 'binary', 'uuid', 'barcode', 'currency'];
+
+                        if (in_array($m, $actions)) {
+                            $this->attributes['db_fields'][$this->_old][$m] = !empty($a) ? reset($a) : true;
+                        } elseif (in_array($m, $types)) {
+                            $this->attributes['db_fields'][$this->_old]['type'] = $m;
+                        } else {
+                            if (isset($this->attributes['db_fields'])) {
+                                $this->attributes['db_fields'][$m] = ['type' => 'string'];
+                                $this->_old = $m;
+                            }
+                        }
+
+                        return $this;
+                    }
+                }
 			}
 		}
 
@@ -255,8 +275,14 @@
 		 */
 		public function __set($key, $value)
 		{
-			$key = Inflector::uncamelize($key);
-			$this->attributes[$key] = $value;
+			if ($key[0] == '_') {
+                $this->$key = $value;
+
+                return $this;
+            } else {
+                $key = Inflector::uncamelize($key);
+    			$this->attributes[$key] = $value;
+            }
 
 			return $this;
 		}
