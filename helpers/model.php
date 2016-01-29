@@ -24,7 +24,13 @@
             $this->storage  = $this->initial  = $data;
 
             if ($db) {
-                $this->db = sha1(get_class($db) . $db->db() . $db->table());
+                $this->db = sha1(
+                    get_class(
+                        $db
+                    ) .
+                    $db->db() .
+                    $db->table()
+                );
                 Now::set($this->db, $db);
             }
         }
@@ -160,7 +166,13 @@
                     $value = (int) $value;
                 } elseif (is_object($value)) {
                     $value = (int) $value->id;
-                    $this->storage[str_replace('_id', '', $key)] = $value->toArray();
+                    $this->storage[
+                        str_replace(
+                            '_id',
+                            '',
+                            $key
+                        )
+                    ] = $value->toArray();
                 }
             } else {
                 if (is_object($value)) {
@@ -206,7 +218,9 @@
 
                     $idField = $this->db()->table() . '_id';
 
-                    return $db->where([$idField, '=', $this->storage['id']])->get(null, true);
+                    return $db->where(
+                        [$idField, '=', $this->storage['id']]
+                    )->get(null, true);
                 } elseif (isset($this->storage[$key . '_id'])) {
                     $db = $this->db()->instanciate($this->db()->db(), $key);
 
@@ -1296,7 +1310,9 @@
 
                 $obj = lib('fluent', [['fluent_type' => 'blueprint', 'db_db' => $db, 'db_table' => $table, 'db_fields' => []]]);
 
-                $cb($obj);
+                $cb(
+                    $obj
+                );
 
                 return $obj;
             });
