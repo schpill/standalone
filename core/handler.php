@@ -19,12 +19,12 @@
         public function __construct()
         {
             session_set_save_handler($this, true);
+            session_start();
         }
 
         public function open($savePath, $sessionName)
         {
-            $sb = System::Db();
-            $this->db = $db->instanciate('session', Inflector::urlize($sessionName, ''));
+            $this->db = core('fast')->instanciate('session', Inflector::urlize($sessionName, ''));
         }
 
         public function close()

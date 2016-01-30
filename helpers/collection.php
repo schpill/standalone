@@ -1109,7 +1109,7 @@
 
 			return $this->filter(function($item) use ($key, $operator, $value) {
 				$item = (object) $item;
-				$actual = $item->{$key};
+				$actual = isset($item->{$key}) ? $item->{$key} : null;
 
 				$insensitive = in_array($operator, ['=i', 'like i', 'not like i']);
 
