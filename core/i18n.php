@@ -167,9 +167,9 @@
                 }
 
                 if (!empty($key)) {
-                    $by = '<?php __(\'' . $default . '\', \'' . $key . '\', ' . $args . '); ?>';
+                    $by = '<?php Thin\\__(\'' . $default . '\', \'' . $key . '\', ' . $args . '); ?>';
                 } else {
-                    $by = '<?php __(\'' . $default . '\', null, ' . $args . '); ?>';
+                    $by = '<?php Thin\\__(\'' . $default . '\', null, ' . $args . '); ?>';
                 }
 
                 $html = str_replace($replace, $by, $html);
@@ -197,7 +197,7 @@
                     $replace = "<lang>$default</lang>";
                 }
 
-                $by = '<?php __(\'' . $default . '\', \'' . $id . '.' . Inflector::urlize($default, '-') . '\', ' . $args . '); ?>';
+                $by = '<?php Thin\\__(\'' . $default . '\', \'' . $id . '.' . Inflector::urlize($default, '-') . '\', ' . $args . '); ?>';
 
                 $html = str_replace($replace, $by, $html);
             }
