@@ -58,10 +58,10 @@
                 ->where(['key', '=', $key])
                 ->where(['language', '=', $locale])
                 ->where(['original', '=', $default])
-                ->first(true);
+                ->first();
 
                 if ($row) {
-                    $translation = $row->translation;
+                    $translation = $row['translation'];
                 } else {
                     $default = preg_replace('~[\r\n]+~', '', $default);
                     $this->db->firstOrCreate([
