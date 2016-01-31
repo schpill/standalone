@@ -137,7 +137,7 @@
 
         public function parse($html)
         {
-            require_once APPLICATION_PATH . DS . '..' . '/public/vendeur/lib/simple_html_dom.php';
+            require_once __DIR__ . DS . 'dom.php';
 
             $str = str_get_html($html);
 
@@ -180,7 +180,7 @@
 
         public function check($id, $html)
         {
-            require_once APPLICATION_PATH . DS . '..' . '/public/vendeur/lib/simple_html_dom.php';
+            require_once __DIR__ . DS . 'dom.php';
 
             $str = str_get_html($html);
 
