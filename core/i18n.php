@@ -15,7 +15,7 @@
     use Locale;
     use Collator;
 
-    class LangLib
+    class I18nCore
     {
         private $locale, $db, $mustTranslate = false;
 
