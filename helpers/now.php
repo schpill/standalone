@@ -507,7 +507,7 @@
             $data = self::$data[$this->ns];
 
             foreach ($data as $k => $v) {
-                if (fnmatch($patter, $k)) {
+                if (fnmatch($pattern, $k)) {
                     yield $k;
                 }
             }
