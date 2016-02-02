@@ -10,13 +10,6 @@
         else return round($mem_usage / 1048576, 2) . ' MB';
     }
 
-    function db($table, $db = SITE_NAME)
-    {
-        $model = Inflector::camelize($db . '_' . $table);
-
-        return Raw::$model();
-    }
-
     function model($table, $data = [], $db = SITE_NAME)
     {
         $model = Inflector::camelize($db . '_' . $table);
@@ -1070,6 +1063,19 @@
             [$i, $type],
             [$message]
         );
+    }
+
+    function db($db = null)
+    {
+        $db = is_null($db) ? SITE_NAME : $db;
+
+        $i = dyn($db);
+
+        $i->fn('from', function ($table) use ($i) {
+            return System::Db()->instanciate($i->getNative(), $table);
+        });
+
+        return $i;
     }
 
     require_once __DIR__ . DS . 'traits.php';
