@@ -58,11 +58,24 @@
 
         public function __destruct()
         {
+            $this->refresh();
+        }
+
+        public function refresh()
+        {
             if (true === $this->write) {
                 File::delete($this->file);
 
-                File::put($this->file, serialize($this->collection()));
+                $data = $this->collection();
+
+                if (!empty($data)) {
+                    File::put($this->file, serialize($data));
+                }
+
+                $this->write = false;
             }
+
+            return $this;
         }
 
         public function collection($fixed = true)

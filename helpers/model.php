@@ -139,6 +139,14 @@
             return false;
         }
 
+        public function commit(callable $validate = null, callable $before = null, callable $after = null)
+        {
+            $row = $this->save($validate, $before, $after);
+            $this->db()->refresh();
+
+            return $row;
+        }
+
         public function __set($k, $v)
         {
             return $this->set($k, $v);
