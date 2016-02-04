@@ -998,12 +998,12 @@
         $typeModel  = str_replace(['Thin\\', 'Lib'], '', get_class($class));
         $db         = $class->db();
         $table      = $class->table();
-        $dir        = path('module') . DS . 'models' . DS . $typeModel;
+        $dir        = STORAGE_PATH . DS . 'models' . DS . $typeModel;
 
         $modelFile = $dir . DS . Inflector::lower($db) . DS . ucfirst(Inflector::lower($table)) . '.php';
 
-        if (!is_dir(path('module') . DS . 'models')) {
-            File::mkdir(path('module') . DS . 'models');
+        if (!is_dir(STORAGE_PATH . DS . 'models')) {
+            File::mkdir(STORAGE_PATH . DS . 'models');
         }
 
         if (!is_dir($dir)) {

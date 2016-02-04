@@ -16,7 +16,7 @@
 
     class BlazzLib
     {
-        private $query = [], $resource, $store, $db, $table, $res, $file, $write = false;
+        private $query = [], $toWrite = [], $toDelete = [], $resource, $store, $db, $table, $res, $file, $dir, $write = false;
 
         public function __construct($db = null, $table = null)
         {
@@ -37,13 +37,17 @@
                 File::mkdir($dir);
             }
 
-            $this->file = $dir . DS . Inflector::urlize(Inflector::uncamelize($this->table)) . '.blazz';
+            $this->dir = $dir . DS . Inflector::urlize(Inflector::uncamelize($this->table));
 
-            if (!file_exists($this->file)) {
-                File::put($this->file, serialize([]));
+            if (!is_dir($this->dir)) {
+                File::mkdir($this->dir);
             }
 
-            $this->iterator(unserialize(File::read($this->file)));
+            if (!is_file($this->dir . DS . 'age.blazz')) {
+                File::put($this->dir . DS . 'age.blazz', '');
+            }
+
+            $this->cursor = core('cursor', [$this]);
         }
 
         public function instanciate($db = null, $table = null)
@@ -53,7 +57,7 @@
 
         public function age()
         {
-            return filemtime($this->file);
+            return filemtime($this->dir . DS . 'age.blazz');
         }
 
         public function __destruct()
@@ -64,12 +68,71 @@
         public function refresh()
         {
             if (true === $this->write) {
-                File::delete($this->file);
+                if (!empty($this->toDelete)) {
+                    foreach ($this->toDelete as $row) {
+                        $id = isAke($row, 'id');
+                        $file = $this->dir . DS . 'id' . DS . $id . '.blazz';
 
-                $data = $this->collection();
+                        if (!is_dir($this->dir . DS . 'id')) {
+                            File::mkdir($this->dir . DS . 'id');
+                        }
 
-                if (!empty($data)) {
-                    File::put($this->file, serialize($data));
+                        File::delete($file);
+
+                        foreach ($row as $k => $v) {
+                            $file = $this->dir . DS . $k . DS . $id . '.blazz';
+
+                            if (!is_dir($this->dir . DS . $k)) {
+                                File::mkdir($this->dir . DS . $k);
+                            }
+
+                            File::delete($file);
+                        }
+
+                        $file = $this->dir . DS . $id . '.blazz';
+                        File::delete($file);
+                        touch($this->dir . DS . 'age.blazz', time());
+                    }
+                }
+
+                if (!empty($this->toWrite)) {
+                    foreach ($this->toWrite as $row) {
+                        $id = isAke($row, 'id');
+
+                        $id = (int) $id;
+
+                        $file = $this->dir . DS . 'id' . DS . $id . '.blazz';
+
+                        if (!is_dir($this->dir . DS . 'id')) {
+                            File::mkdir($this->dir . DS . 'id');
+                        }
+
+                        File::delete($file);
+                        File::put($file, serialize($id));
+
+                        foreach ($row as $k => $v) {
+                            if ($k == 'id') {
+                                continue;
+                            }
+
+                            if (fnmatch ('*_id', $k)) {
+                                $v = (int) $v;
+                            }
+
+                            if (!is_dir($this->dir . DS . $k)) {
+                                File::mkdir($this->dir . DS . $k);
+                            }
+
+                            $file = $this->dir . DS . $k . DS . $id . '.blazz';
+                            File::delete($file);
+                            File::put($file, serialize($v));
+                        }
+
+                        $file = $this->dir . DS . $id . '.blazz';
+                        File::delete($file);
+                        File::put($file, serialize($row));
+                        touch($this->dir . DS . 'age.blazz', time());
+                    }
                 }
 
                 $this->write = false;
@@ -78,36 +141,15 @@
             return $this;
         }
 
-        public function collection($fixed = true)
-        {
-            $cursor = lib('array')->makeFromResource($this->resource);
-            $cursor = is_array($cursor) ? $cursor : iterator_to_array($cursor);
-
-            return $fixed ? SplFixedArray::fromArray($cursor) : $cursor;
-        }
-
-        private function makeResource($cursor)
-        {
-            $cursor = is_array($cursor) ? $cursor : iterator_to_array($cursor);
-
-            $this->resource = lib('array')->makeResource($cursor);
-        }
-
-        public function iterator($data = null)
-        {
-            $data = is_null($data) ? $this->store->get($this->db . '.' . $this->table, []) : $data;
-            $this->makeResource($data);
-        }
-
         public function add($row)
         {
-            $this->write = true;
+            $id = isAke($row, 'id', null);
 
-            $collection = $this->collection(false);
+            if ($id) {
+                $this->write = true;
 
-            $collection[] = $row;
-
-            $this->iterator($collection);
+                $this->toWrite[] = $row;
+            }
 
             return $this;
         }
@@ -157,37 +199,28 @@
 
         public function delete($id)
         {
-            $this->write = true;
+            $row = $this->cursor->getRow($id);
 
-            $newCollection = [];
+            $exists = !is_null($row);
 
-            $exists = false;
-
-            foreach ($this->collection() as $row) {
-                if ($row['id'] != $id) {
-                    $newCollection[] = $row;
-                } else {
-                    $exists = true;
-                }
+            if ($exists) {
+                $this->write        = true;
+                $this->toDelete[]   = $row;
             }
-
-            $this->iterator($newCollection);
 
             return $exists;
         }
 
         public function flush()
         {
-            $this->write = true;
-
-            $this->iterator([]);
+            File::rmdir($this->dir);
 
             return $this;
         }
 
         public function find($id, $model = true)
         {
-            $row = coll($this->collection())->where(['id', '=', $id])->first();
+            $row = $this->cursor->getRow($id);
 
             if ($row) {
                 return $model ? $this->model($row) : $row;
@@ -209,11 +242,9 @@
 
         public function firstOrCreate($conditions)
         {
-            $row = lib('array')->first($this->collection(), function ($k, $row) use ($conditions) {
-                if (!isset($row['id'])) {
-                    return false;
-                }
+            $data = $this->cursor->select(array_keys($conditions));
 
+            $row = lib('array')->first($data, function ($k, $row) use ($conditions) {
                 foreach ($conditions as $k => $v) {
                     if ($row[$k] != $v) {
                         return false;
@@ -232,7 +263,9 @@
 
         public function firstOrNew($conditions)
         {
-            $row = lib('array')->first($this->collection(), function ($row) use ($conditions) {
+            $data = $this->cursor->select(array_keys($conditions));
+
+            $row = lib('array')->first($data, function ($k, $row) use ($conditions) {
                 foreach ($conditions as $k => $v) {
                     if ($row[$k] != $v) {
                         return false;
@@ -249,39 +282,13 @@
             }
         }
 
-        public function first($model = false)
-        {
-            if (!$this->res) {
-                $this->res = coll($this->collection());
-            }
-
-            $row = $this->res->first();
-
-            return $model ? $this->model($row) : $row;
-        }
-
-        public function last($model = false)
-        {
-            if (!$this->res) {
-                $this->res = coll($this->collection());
-            }
-
-            $row = $this->res->last();
-
-            return $model ? $this->model($row) : $row;
-        }
-
         public function count()
         {
-            if (!$this->res) {
-                $this->res = coll($this->collection());
+            if (empty($this->query)) {
+                return count($this->cursor->ids());
             }
 
-            $last = $this->res;
-
-            $count = $this->res->count();
-
-            $this->res = $last;
+            $count = $this->cursor->count();
 
             return $count;
         }
@@ -290,111 +297,28 @@
         {
             $this->query[] = func_get_args();
 
-            if ($m != 'or') {
-                $i = $this->res instanceof CollectionLib ? $this->res : coll($this->collection());
+            call_user_func_array([$this->cursor, $m], $a);
 
-                $this->res = call_user_func_array([$i, $m], $a);
-
-                return is_object($this->res) ? $this : $this->res;
-            } else {
-                if (!$this->res instanceof CollectionLib) {
-                    throw new Exception("You must have at leat one more query before to call an or query.");
-                } else {
-                    $key        = sha1(serialize($this->query) . $this->db . $this->table);
-                    $res        = array_values($this->res->toArray());
-
-                    $i          = coll($this->collection());
-
-                    $results    = call_user_func_array([$i, 'where'], $a);
-
-                    $merged = $this->merge($key, array_merge(
-                        $res,
-                        array_values(
-                            $results->toArray()
-                        )
-                    ));
-
-                    $this->res = coll($merged);
-
-                    return $this;
-                }
-            }
-        }
-
-        private function merge($key, $data = [])
-        {
-            return fmr('blazz')->aged($key, function () use ($data) {
-                $merged = $ids = [];
-
-                foreach ($data as $row) {
-                    $id = isAke($row, 'id', null);
-
-                    if ($id) {
-                        if (!in_array($id, $ids)) {
-                            $ids[] = $id;
-                            $merged[] = $row;
-                        }
-                    }
-                }
-
-                return $merged;
-            }, $this->age());
-        }
-
-        public function get($model = false)
-        {
-            if (!isset($this->res)) {
-                $this->res = coll($this->collection());
-            }
-
-            return $model ? $this->models(array_values($this->res->toArray())) : lib('array')->iterator(array_values($this->res->toArray()));
-        }
-
-        public function toArray($model = false)
-        {
-            if (!isset($this->res)) {
-                $this->res = coll($this->collection());
-            }
-
-            if (!$model) {
-                return array_values($this->res->toArray());
-            } else {
-                $collection = [];
-
-                foreach ($this->res as $row) {
-                    $collection[] = $this->model($row);
-                }
-
-                return $collection;
-            }
+            return $this->cursor;
         }
 
         private function makeId()
         {
-            if (empty($this->collection())) {
-                $this->lastid = 0;
-            } else {
-                if (!isset($this->lastid)) {
-                    $this->lastid = coll($this->collection())->max('id');
-                }
+            $file = $this->dir . DS . 'lastid.blazz';
+
+            if (is_file($file)) {
+                $last = File::read($file);
+                $new = $last + 1;
+
+                File::delete($file);
+                File::put($file, $new);
+
+                return $new;
             }
 
-            $this->lastid++;
+            File::put($file, 1);
 
-            return $this->lastid;
-        }
-
-        public function models($rows = null)
-        {
-            if (!isset($this->res)) {
-                $this->res = coll($this->collection());
-            }
-
-            $rows = is_null($rows) ? $this->res : $rows;
-
-            foreach ($rows as $row) {
-                yield $this->model($row);
-            }
+            return 1;
         }
 
         public function model(array $data = [])
@@ -410,5 +334,15 @@
         public function table()
         {
             return $this->table;
+        }
+
+        public function dir()
+        {
+            return $this->dir;
+        }
+
+        public function cursor()
+        {
+            return $this->cursor;
         }
     }
