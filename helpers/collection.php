@@ -1125,6 +1125,10 @@
 					$operator = str_replace(['=i', 'like i'], ['=', 'like'], $operator);
 				}
 
+                if ($key == 'id' || fnmatch('*_id', $key) && is_numeric($actual)) {
+                    $actual = (int) $actual;
+                }
+
 				switch ($operator) {
 					case '<>':
 					case '!=':
