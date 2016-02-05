@@ -18,11 +18,12 @@
 
     class CursorCore implements Countable, Iterator
     {
-        private $resource, $db, $position, $closure;
+        private $resource, $db, $position, $closure, $query = [];
 
         public function __construct($db, callable $closure = null)
         {
             $this->dir = $db->dir();
+            $this->age = $db->age();
 
             $this->resource = lib('array')->makeResource($this->ids());
 
@@ -38,31 +39,62 @@
         {
             $this->position = 0;
             $this->resource = null;
-            $this->db = null;
-            $this->closure = null;
+            $this->closure  = null;
+            $this->query    = [];
+
+            $this->resource = lib('array')->makeResource($this->ids());
+
+            $this->count    = count($this->getIterator());
 
             return $this;
         }
 
         public function ids()
         {
+            $keyCache = sha1('ids.' . $this->dir);
+
             $dir = $this->dir . DS . 'id';
 
-            if (is_dir($dir)) {
-                $ids = [];
+            return fmr('cursor')->aged($keyCache, function () use ($dir) {
+                if (is_dir($dir)) {
+                    $ids = [];
 
-                $rows = glob($dir . DS . '*.blazz');
+                    $rows = glob($dir . DS . '*.blazz');
 
-                foreach ($rows as $row) {
-                    $id = str_replace([$dir . DS, '.blazz'], '', $row);
+                    foreach ($rows as $row) {
+                        $id = str_replace([$dir . DS, '.blazz'], '', $row);
 
-                    $ids[] = (int) $id;
+                        $ids[] = (int) $id;
+                    }
+
+                    return $ids;
                 }
 
-                return $ids;
-            }
+                return [];
+            }, $this->age);
+        }
 
-            return [];
+        public function fields()
+        {
+            $keyCache = sha1('fields.' . $this->dir);
+
+            $dir = $this->dir;
+
+            return fmr('cursor')->aged($keyCache, function () use ($dir) {
+                $fields = [];
+
+                $files  = glob($dir . DS . '*');
+
+                foreach ($files as $file) {
+                    if (is_dir($file) && !fnmatch('_*', $file)) {
+                        $field = str_replace([$dir . DS], '', $file);
+
+                        $fields[] = $field;
+                    }
+                }
+
+                return $fields;
+            }, $this->age);
         }
 
         public function __destruct()
@@ -116,23 +148,6 @@
             }
 
             return $data;
-        }
-
-        public function fields()
-        {
-            $fields = [];
-
-            $files  = glob($this->dir . DS . '*');
-
-            foreach ($files as $file) {
-                if (is_dir($file) && !fnmatch('_*', $file)) {
-                    $field = str_replace([$this->dir . DS], '', $file);
-
-                    $fields[] = $field;
-                }
-            }
-
-            return $fields;
         }
 
         public function getRow($id)
@@ -276,58 +291,132 @@
             return false;
         }
 
+        public function slice($offset, $length = null)
+        {
+            $this->resource = lib('array')->makeResource(array_slice((array) $this->getIterator(), $offset, $length, true));
+
+            $this->count = count($this->getIterator());
+
+            return $this;
+        }
+
         public function sum($field)
         {
-            return coll($this->select($field))->sum($field);
+            $keyCache = sha1('sum.' . $this->dir . $field . serialize($this->query));
+
+            return fmr('cursor')->aged($keyCache, function () use ($field) {
+                return coll($this->select($field))->sum($field);
+            }, $this->age);
         }
 
         public function min($field)
         {
-            return coll($this->select($field))->min($field);
+            $keyCache = sha1('min.' . $this->dir . $field . serialize($this->query));
+
+            return fmr('cursor')->aged($keyCache, function () use ($field) {
+                return coll($this->select($field))->min($field);
+            }, $this->age);
         }
 
         public function max($field)
         {
-            return coll($this->select($field))->max($field);
+            $keyCache = sha1('max.' . $this->dir . $field . serialize($this->query));
+
+            return fmr('cursor')->aged($keyCache, function () use ($field) {
+                return coll($this->select($field))->max($field);
+            }, $this->age);
         }
 
         public function avg($field)
         {
-            return coll($this->select($field))->avg($field);
+            $keyCache = sha1('avg.' . $this->dir . $field . serialize($this->query));
+
+            return fmr('cursor')->aged($keyCache, function () use ($field) {
+                return coll($this->select($field))->avg($field);
+            }, $this->age);
         }
 
         public function multisort($criteria)
         {
-            $results = coll($this->select(array_keys($criteria)))->multisort($criteria);
+            $keyCache = sha1('multisort.' . $this->dir . serialize($criteria) . serialize($this->query));
 
-            $this->resource = lib('array')->makeResource(array_values($results->fetch('id')->toArray()));
+            $ids =  fmr('cursor')->aged($keyCache, function () use ($criteria) {
+                $results = coll($this->select(array_keys($criteria)))->multisort($criteria);
+
+                return array_values($results->fetch('id')->toArray());
+            }, $this->age);
+
+            $this->resource = lib('array')->makeResource($ids);
 
             $this->count = count($this->getIterator());
+
+            return $this;
+        }
+
+        public function groupBy($field)
+        {
+            $keyCache = sha1('groupBy.' . $this->dir . $field . serialize($this->query));
+
+            $ids =  fmr('cursor')->aged($keyCache, function () use ($field) {
+                $results = coll($this->select($field))->groupBy($field);
+
+                return array_values($results->fetch('id')->toArray());
+            }, $this->age);
+
+            $this->resource = lib('array')->makeResource($ids);
+
+            $this->count = count($this->getIterator());
+
+            return $this;
         }
 
         public function sortBy($field)
         {
-            $results = coll($this->select($field))->sortBy($field);
+            $keyCache = sha1('sortBy.' . $this->dir . $field . serialize($this->query));
 
-            $this->resource = lib('array')->makeResource(array_values($results->fetch('id')->toArray()));
+            $ids =  fmr('cursor')->aged($keyCache, function () use ($field) {
+                $results = coll($this->select($field))->sortBy($field);
+
+                return array_values($results->fetch('id')->toArray());
+            }, $this->age);
+
+            $this->resource = lib('array')->makeResource($ids);
 
             $this->count = count($this->getIterator());
+
+            return $this;
         }
 
         public function sortByDesc($field)
         {
-            $results = coll($this->select($field))->sortByDesc($field);
+            $keyCache = sha1('sortByDesc.' . $this->dir . $field . serialize($this->query));
 
-            $this->resource = lib('array')->makeResource(array_values($results->fetch('id')->toArray()));
+            $ids =  fmr('cursor')->aged($keyCache, function () use ($field) {
+                $results = coll($this->select($field))->sortByDesc($field);
+
+                return array_values($results->fetch('id')->toArray());
+            }, $this->age);
+
+            $this->resource = lib('array')->makeResource($ids);
 
             $this->count = count($this->getIterator());
+
+            return $this;
         }
 
         public function where($key, $operator = null, $value = null)
         {
+            $this->query[] = func_get_args();
+
             if (func_num_args() == 1) {
                 if (is_array($key)) {
-                    list($key, $operator, $value) = $key;
+                    if (count($key) == 1) {
+                        $operator   = '=';
+                        $value      = array_values($key);
+                        $key        = array_keys($key);
+                    } elseif (count($key) == 3) {
+                        list($key, $operator, $value) = $key;
+                    }
                     $operator = strtolower($operator);
                 }
             }
@@ -338,73 +427,81 @@
 
             $collection = coll($this->select($key));
 
-            $results = $collection->filter(function($item) use ($key, $operator, $value) {
-                $item = (object) $item;
-                $actual = isset($item->{$key}) ? $item->{$key} : null;
+            $keyCache = sha1(serialize(func_get_args()) . $this->dir);
 
-                $insensitive = in_array($operator, ['=i', 'like i', 'not like i']);
+            $ids = fmr('cursor')->aged($keyCache, function () use ($collection, $key, $operator, $value) {
+                $results = $collection->filter(function($item) use ($key, $operator, $value) {
+                    $item = (object) $item;
+                    $actual = isset($item->{$key}) ? $item->{$key} : null;
 
-                if ((!is_array($actual) || !is_object($actual)) && $insensitive) {
-                    $actual = Inflector::lower(Inflector::unaccent($actual));
-                }
+                    $insensitive = in_array($operator, ['=i', 'like i', 'not like i']);
 
-                if ((!is_array($value) || !is_object($value)) && $insensitive) {
-                    $value  = Inflector::lower(Inflector::unaccent($value));
-                }
+                    if ((!is_array($actual) || !is_object($actual)) && $insensitive) {
+                        $actual = Inflector::lower(Inflector::unaccent($actual));
+                    }
 
-                if ($insensitive) {
-                    $operator = str_replace(['=i', 'like i'], ['=', 'like'], $operator);
-                }
+                    if ((!is_array($value) || !is_object($value)) && $insensitive) {
+                        $value  = Inflector::lower(Inflector::unaccent($value));
+                    }
 
-                if ($key == 'id' || fnmatch('*_id', $key) && is_numeric($actual)) {
-                    $actual = (int) $actual;
-                }
+                    if ($insensitive) {
+                        $operator = str_replace(['=i', 'like i'], ['=', 'like'], $operator);
+                    }
 
-                switch ($operator) {
-                    case '<>':
-                    case '!=':
-                        return sha1(serialize($actual)) != sha1(serialize($value));
-                    case '>':
-                        return $actual > $value;
-                    case '<':
-                        return $actual < $value;
-                    case '>=':
-                        return $actual >= $value;
-                    case '<=':
-                        return $actual <= $value;
-                    case 'between':
-                        return $actual >= $value[0] && $actual <= $value[1];
-                    case 'not between':
-                        return $actual < $value[0] || $actual > $value[1];
-                    case 'in':
-                        return in_array($actual, $value);
-                    case 'not in':
-                        return !in_array($actual, $value);
-                    case 'like':
-                        $value  = str_replace("'", '', $value);
-                        $value  = str_replace('%', '*', $value);
+                    if ($key == 'id' || fnmatch('*_id', $key) && is_numeric($actual)) {
+                        $actual = (int) $actual;
+                    }
 
-                        return fnmatch($value, $actual);
-                    case 'not like':
-                        $value  = str_replace("'", '', $value);
-                        $value  = str_replace('%', '*', $value);
+                    switch ($operator) {
+                        case '<>':
+                        case '!=':
+                            return sha1(serialize($actual)) != sha1(serialize($value));
+                        case '>':
+                            return $actual > $value;
+                        case '<':
+                            return $actual < $value;
+                        case '>=':
+                            return $actual >= $value;
+                        case '<=':
+                            return $actual <= $value;
+                        case 'between':
+                            return $actual >= $value[0] && $actual <= $value[1];
+                        case 'not between':
+                            return $actual < $value[0] || $actual > $value[1];
+                        case 'in':
+                            return in_array($actual, $value);
+                        case 'not in':
+                            return !in_array($actual, $value);
+                        case 'like':
+                            $value  = str_replace("'", '', $value);
+                            $value  = str_replace('%', '*', $value);
 
-                        $check  = fnmatch($value, $actual);
+                            return fnmatch($value, $actual);
+                        case 'not like':
+                            $value  = str_replace("'", '', $value);
+                            $value  = str_replace('%', '*', $value);
 
-                        return !$check;
-                    case 'is':
-                        return is_null($actual);
-                    case 'is not':
-                        return !is_null($actual);
-                    case '=':
-                    default:
-                        return sha1(serialize($actual)) == sha1(serialize($value));
-                }
-            });
+                            $check  = fnmatch($value, $actual);
 
-            $this->resource = lib('array')->makeResource(array_values($results->fetch('id')->toArray()));
+                            return !$check;
+                        case 'is':
+                            return is_null($actual);
+                        case 'is not':
+                            return !is_null($actual);
+                        case '=':
+                        default:
+                            return sha1(serialize($actual)) == sha1(serialize($value));
+                    }
+                });
+
+                return array_values($results->fetch('id')->toArray());
+            }, $this->age);
+
+            $this->resource = lib('array')->makeResource($ids);
 
             $this->count = count($this->getIterator());
+
+            return $this;
         }
 
         public function toArray($fields = null)
@@ -474,28 +571,6 @@
         public function get($object = false)
         {
             return $this;
-            $row = $this->getNext();wvd($this->db->db());
-
-            if ($row) {
-                return $object ? $this->db->model($row) : $row;
-            }
-
-            $this->reset();
-
-            return false;
-        }
-
-        public function fetch($object = false)
-        {
-            $row = $this->getNext();
-
-            if ($row) {
-                return $object ? $this->db->model($row) : $row;
-            }
-
-            $this->reset();
-
-            return false;
         }
 
         public function model()
@@ -603,50 +678,199 @@
             return null;
         }
 
-        private function merge($key, $data = [])
+        public function splice($offset, $length = null, $replacement = [])
         {
-            return fmr('cursor')->aged($key, function () use ($data) {
-                $merged = $ids = [];
+            if (func_num_args() == 1) {
+                return $this->new(array_splice((array) $this->getIterator(), $offset));
+            }
 
-                foreach ($data as $row) {
-                    $id = isAke($row, 'id', null);
+            return $this->new(array_splice((array) $this->getIterator(), $offset, $length, $replacement));
+        }
 
-                    if ($id) {
-                        if (!in_array($id, $ids)) {
-                            $ids[] = $id;
-                            $merged[] = $row;
-                        }
+        public function average($field)
+        {
+            return $this->avg($field);
+        }
+
+        public function take($limit = null)
+        {
+            if ($limit < 0) {
+                return $this->slice($limit, abs($limit));
+            }
+
+            return $this->slice(0, $limit);
+        }
+
+        public function like($field, $value)
+        {
+            return $this->where($field, 'like', $value);
+        }
+
+        public function notLike($field, $value)
+        {
+            return $this->where($field, 'not like', $value);
+        }
+
+        public function findBy($field, $value)
+        {
+            return $this->where($field, '=', $value);
+        }
+
+        public function firstBy($field, $value)
+        {
+            return $this->where($field, '=', $value)->first();
+        }
+
+        public function lastBy($field, $value)
+        {
+            return $this->where($field, '=', $value)->last();
+        }
+
+        public function in($field, array $values)
+        {
+            return $this->where($field, 'in', $values);
+        }
+
+        public function notIn($field, array $values)
+        {
+            return $this->where($field, 'not in', $values);
+        }
+
+        public function rand($default = null)
+        {
+            $items = (array) $this->getIterator();
+
+            if (!empty($items)) {
+                shuffle($items);
+
+                $row = current($items);
+
+                return $this->getRow($row['id']);
+            }
+
+            return $default;
+        }
+
+        public function isBetween($field, $min, $max)
+        {
+            return $this->where($field, 'between', [$min, $max]);
+        }
+
+        public function isNotBetween($field, $min, $max)
+        {
+            return $this->where($field, 'not between', [$min, $max]);
+        }
+
+        public function isNull($field)
+        {
+            return $this->where($field, 'is', 'null');
+        }
+
+        public function isNotNull($field)
+        {
+            return $this->where($field, 'is not', 'null');
+        }
+
+        private function merge($data = [])
+        {
+            $merged = $ids = [];
+
+            foreach ($data as $row) {
+                $id = isAke($row, 'id', null);
+
+                if ($id) {
+                    if (!in_array($id, $ids)) {
+                        $ids[] = $id;
+                        $merged[] = $row;
                     }
                 }
+            }
 
-                return $merged;
-            }, $this->db->age());
+            return $merged;
+        }
+
+        public function all()
+        {
+            return $this;
+        }
+
+        public function map(callable $callback, $fields = null)
+        {
+            $fields = is_null($fields) ? $this->fields() : $fields;
+            $data   = $this->select($fields);
+
+            $results = coll($data)->each($callback);
+
+            $this->resource = lib('array')->makeResource(array_values($results->fetch('id')->toArray()));
+
+            $this->count = count($this->getIterator());
+
+            return $this;
+        }
+
+        public function filter(callable $callback, $fields = null)
+        {
+            $fields = is_null($fields) ? $this->fields() : $fields;
+            $data   = $this->select($fields);
+
+            $results = coll($data)->filter($callback);
+
+            $this->resource = lib('array')->makeResource(array_values($results->fetch('id')->toArray()));
+
+            $this->count = count($this->getIterator());
+
+            return $this;
+        }
+
+        public function fetch($field)
+        {
+            return $this->select($field);
+        }
+
+        public function paginate($page, $perPage)
+        {
+            $items = (array) $this->getIterator();
+
+            return $this->new(array_slice($items, ($page - 1) * $perPage, $perPage));
         }
 
         public function __call($m, $a)
         {
             if ($m != 'or') {
-                $collection = coll($this->select());
-
-                $results = call_user_func_array([$collection, $m], $a);
-
-                if (is_object($results)) {
-                    $this->resource = lib('array')->makeResource(array_values($results->fetch('id')->toArray()));
+                if ($m == 'new') {
+                    $this->resource = lib('array')->makeResource(current($a));
 
                     $this->count = count($this->getIterator());
 
                     return $this;
                 } else {
-                    return $results;
+                    $collection = coll($this->select());
+
+                    $results = call_user_func_array([$collection, $m], $a);
+
+                    if (is_object($results)) {
+                        $this->resource = lib('array')->makeResource(array_values($results->fetch('id')->toArray()));
+
+                        $this->count = count($this->getIterator());
+
+                        return $this;
+                    } else {
+                        return $results;
+                    }
                 }
             } else {
-                $oldIds = (array) $this->getIterator();
-                call_user_func_array([$this, 'where'], $a);
-                $intersect = array_intersect($oldIds, (array) $this->getIterator());
+                $oldIds         = (array) $this->getIterator();
+                $this->resource = lib('array')->makeResource($this->ids());
 
-                $this->resource = lib('array')->makeResource(array_values($intersect));
+                call_user_func_array([$this, 'where'], $a);
+
+                $merged = array_merge($oldIds, (array) $this->getIterator());
+
+                $this->resource = lib('array')->makeResource(array_values($merged));
 
                 $this->count = count($this->getIterator());
+
+                return $this;
             }
         }
     }

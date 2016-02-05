@@ -135,6 +135,8 @@
                     }
                 }
 
+                $this->cursor = core('cursor', [$this])->reset();
+
                 $this->write = false;
             }
 
@@ -282,24 +284,24 @@
             }
         }
 
-        public function count()
-        {
-            if (empty($this->query)) {
-                return count($this->cursor->ids());
-            }
+        // public function count()
+        // {
+        //     if (empty($this->query)) {
+        //         return count($this->cursor->ids());
+        //     }
 
-            $count = $this->cursor->count();
+        //     $count = $this->cursor->count();
 
-            return $count;
-        }
+        //     return $count;
+        // }
 
         public function __call($m, $a)
         {
             $this->query[] = func_get_args();
 
-            call_user_func_array([$this->cursor, $m], $a);
+            $res = call_user_func_array([$this->cursor, $m], $a);
 
-            return $this->cursor;
+            return is_object($res) ? $this->cursor : $res;
         }
 
         private function makeId()

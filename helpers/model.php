@@ -68,6 +68,8 @@
                         call_user_func_array($after, [$this]);
                     }
 
+                    $this->db()->refresh();
+
                     return $res;
                 }
             }
@@ -132,6 +134,8 @@
                 if ($after) {
                     call_user_func_array($after, [$row]);
                 }
+
+                $this->db()->refresh();
 
                 return $row;
             }

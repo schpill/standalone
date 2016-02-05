@@ -340,9 +340,11 @@
 
     function ageCache($k, callable $c, $maxAge = null, $args = [])
     {
-        $dir = '/home/storage/aged';
+        $dir = Config::get('dir.ephemere', session_save_path()) . '/aged';
 
         if (!is_dir($dir)) {
+            File::mkdir($dir);
+        }if (!is_dir($dir)) {
             File::mkdir($dir);
         }
 
