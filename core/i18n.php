@@ -76,7 +76,7 @@
                     $setter     = setter(DEFAULT_LANGUAGE);
                     $translate->$setter($default);
                     $setter     = setter($locale);
-                    $translate->$setter(lib('utils')->gTranslate($default, $locale))->save();
+                    $translate->$setter('')->save();
                 }
             }
 

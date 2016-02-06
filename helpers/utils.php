@@ -372,7 +372,7 @@
             }
         }
 
-        public function translate($sentence, $source = 'fr', $target = 'en')
+        public function translate($sentence, $target = 'en', $source = 'fr')
         {
             if ($source == $target) {
                 return $sentence;
@@ -380,7 +380,7 @@
 
             $key = 'trad.' . sha1(serialize(func_get_args()));
 
-            $cached = lib('cache')->get($key);
+            $cached = fmr('translate')->get($key);
 
             if (!$cached) {
                 $cached = $sentence;
@@ -390,7 +390,7 @@
 
                 $url = "http://api.mymemory.translated.net/get?q=" . urlencode($sentence) . "&langpair=" . urlencode($source) . "|" . urlencode($target);
 
-                $res = dwn($url);
+                $res = lib('geo')->dwnCache($url);
                 $tab = json_decode($res, true);
 
                 $data = isAke($tab, 'responseData', false);
@@ -401,9 +401,10 @@
                     if (false !== $translatedText) {
                         $cached = $translatedText;
                     }
+                    wdd($cached);
                 }
 
-                lib('cache')->set($key, $cached);
+                fmr('translate')->set($key, $cached);
             }
 
             return $cached;
@@ -418,9 +419,14 @@
             $data = lib('geo')->dwnCache($url);
 
             $data = json_decode($data);
+
+            if (!is_object($data)) {
+                return $sentence;
+            }
+
             $translated = '';
 
-            foreach($data->sentences as $s) {
+            foreach ($data->sentences as $s) {
                 $translated .= $s->trans;
             }
 
