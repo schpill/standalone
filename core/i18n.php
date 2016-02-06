@@ -56,20 +56,21 @@
             if (false !== $this->mustTranslate) {
                 $row = $this->db
                 ->where(['key', '=', $key])
-                ->where(['language', '=', $locale])
-                ->where(['original', '=', $default])
                 ->first();
 
                 if ($row) {
-                    $translation = $row['translation'];
+                    $translation = isAke($row, $locale, $default);
+
+                    if (!strlen($translation)) {
+                        $translation = $default;
+                    }
                 } else {
-                    $default = preg_replace('~[\r\n]+~', '', $default);
-                    $this->db->firstOrCreate([
-                        'original'      => $default,
-                        'translation'   => $default,
-                        'key'           => $key,
-                        'language'      => $locale
-                    ]);
+                    $default    = preg_replace('~[\r\n]+~', '', $default);
+                    $translate  = $this->db->firstOrCreate(['key' => $key]);
+                    $setter     = setter(DEFAULT_LANGUAGE);
+                    $translate->$setter($default);
+                    $setter     = setter($locale);
+                    $translate->$setter('')->save();
                 }
             }
 
@@ -90,7 +91,6 @@
 
             $row = $this->db
             ->where(['key', '=', $key])
-            ->where(['language', '=', $this->locale])
             ->first(true);
 
             return !empty($row);
