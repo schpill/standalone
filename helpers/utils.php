@@ -411,15 +411,20 @@
 
         public function gTranslate($sentence, $to = 'en', $from = 'fr')
         {
-            $word = urlencode($word);
+            $word = urlencode($sentence);
 
-            $url  = 'https://translate.google.com/translate_a/single?client=t&sl=' . $from . '&tl=' . $to . '&hl=' . $to . '-419&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&dt=at&ie=UTF-8&oe=UTF-8&otf=1&ssel=0&tsel=0&tk=519235|682612&q=' . $word;
+            $url = 'https://translate.google.com/translate_a/t?client=p&sl='.$from.'&tl='.$to.'&hl=en&dt=t&ie=UTF-8&oe=UTF-8&q='.$sentence;
 
-            $tr = $this->curl($url);
+            $data = lib('geo')->dwnCache($url);
 
-            $tr = explode('"', $tr);
+            $data = json_decode($data);
+            $translated = '';
 
-            return $tr[1];
+            foreach($data->sentences as $s) {
+                $translated .= $s->trans;
+            }
+
+            return $translated;
         }
 
         private function curl($url, $params = [], $hasCookie = false)

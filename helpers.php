@@ -286,7 +286,7 @@
 
     function xCache($k, callable $c, $maxAge = null, $args = [])
     {
-        $dir = '/home/storage/xcache';
+        $dir = STORAGE_PATH . '/ephemere/xcache';
 
         if (!is_dir($dir)) {
             File::mkdir($dir);

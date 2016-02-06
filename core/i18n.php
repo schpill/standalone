@@ -76,7 +76,7 @@
                     $setter     = setter(DEFAULT_LANGUAGE);
                     $translate->$setter($default);
                     $setter     = setter($locale);
-                    $translate->$setter('')->save();
+                    $translate->$setter(lib('geo')->gTranslate($default, $locale))->save();
                 }
             }
 
