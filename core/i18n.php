@@ -59,6 +59,12 @@
                 ->first();
 
                 if ($row) {
+                    if (!isset($row[$locale])) {
+                        $translate  = $this->db->find((int) $row['id']);
+                        $setter     = setter($locale);
+                        $translate->$setter('')->save();
+                    }
+
                     $translation = isAke($row, $locale, $default);
 
                     if (!strlen($translation)) {
