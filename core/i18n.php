@@ -173,9 +173,9 @@
                 }
 
                 if (!empty($key)) {
-                    $by = '<?php Thin\\__(\'' . $default . '\', \'' . $key . '\', ' . $args . '); ?>';
+                    $by = '<?php __(\'' . $default . '\', \'' . $key . '\', ' . $args . '); ?>';
                 } else {
-                    $by = '<?php Thin\\__(\'' . $default . '\', null, ' . $args . '); ?>';
+                    $by = '<?php __(\'' . $default . '\', null, ' . $args . '); ?>';
                 }
 
                 $html = str_replace($replace, $by, $html);
@@ -203,7 +203,7 @@
 
                     $file = path('cache') . DS . sha1(serialize($args)) . '.display';
 
-                    File::put($file, $args);
+                    File::put($file, '<?php namespace Thin; ?>' . $args);
 
                     ob_start();
 
@@ -219,7 +219,7 @@
                     $replace = "<lang>$default</lang>";
                 }
 
-                $by = '<?php Thin\\__(\'' . $default . '\', \'' . $id . '.' . Inflector::urlize($default, '-') . '\', ' . $args . '); ?>';
+                $by = '<?php __(\'' . $default . '\', \'' . $id . '.' . Inflector::urlize($default, '-') . '\', ' . $args . '); ?>';
 
                 $html = str_replace($replace, $by, $html);
             }

@@ -163,7 +163,7 @@
                     if (fnmatch('*_id', $k)) {
                         $fkTable        = str_replace('_id', '', $k);
                         $fkId           = (int) $v;
-                        $row[$fkTable]  = $this->db->instanciate($this->db->db(), $fkTable)->find((int) $fkId);
+                        $row['fk_' . $fkTable]  = $this->db->instanciate($this->db->db(), $fkTable)->find((int) $fkId, false);
                     }
                 }
             }
