@@ -197,7 +197,23 @@
                 $args       = $segLang->args;
 
                 if (!empty($args)) {
+                    $controller = Now::get('instance.controller');
+
                     $replace = "<lang args=\"$args\">$default</lang>";
+
+                    $file = path('cache') . DS . sha1(serialize($args)) . '.display';
+
+                    File::put($file, $args);
+
+                    ob_start();
+
+                    include $file;
+
+                    $args = ob_get_contents();
+
+                    ob_end_clean();
+
+                    File::delete($file);
                 } else {
                     $args = '[]';
                     $replace = "<lang>$default</lang>";
