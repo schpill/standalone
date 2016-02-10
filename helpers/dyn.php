@@ -52,10 +52,16 @@
 
                     return call_user_func_array($c, $args);
                 }
-            }
+            } else {
+                if (fnmatch('_*', $m)) {
+                    $m = strrev(substr(strtolower($m), 1));
 
-            if (!is_null($this->native)) {
-                return call_user_func_array([$this->native, $m], $a);
+                    return $this->fn($m, current($a));
+                } else {
+                    if (!is_null($this->native)) {
+                        return call_user_func_array([$this->native, $m], $a);
+                    }
+                }
             }
 
             return null;
