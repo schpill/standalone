@@ -16,14 +16,12 @@
 
     class BlazzLib
     {
-        private $query = [], $toWrite = [], $toDelete = [], $resource, $store, $db, $table, $res, $file, $dir, $write = false;
+        private $query = [], $toWrite = [], $toDelete = [], $db, $table, $res, $file, $dir, $write = false;
 
         public function __construct($db = null, $table = null)
         {
             $this->db       = is_null($db) ? SITE_NAME : $db;
             $this->table    = is_null($table) ? 'core' : $table;
-
-            $this->store    = lib('now', ['blazz']);
 
             $dir = Config::get('dir.flat.store', session_save_path());
 
@@ -70,8 +68,8 @@
             if (true === $this->write) {
                 if (!empty($this->toDelete)) {
                     foreach ($this->toDelete as $row) {
-                        $id = isAke($row, 'id');
-                        $file = $this->dir . DS . 'id' . DS . $id . '.blazz';
+                        $id     = isAke($row, 'id');
+                        $file   = $this->dir . DS . 'id' . DS . $id . '.blazz';
 
                         if (!is_dir($this->dir . DS . 'id')) {
                             File::mkdir($this->dir . DS . 'id');
@@ -283,17 +281,6 @@
                 return $this->model($row);
             }
         }
-
-        // public function count()
-        // {
-        //     if (empty($this->query)) {
-        //         return count($this->cursor->ids());
-        //     }
-
-        //     $count = $this->cursor->count();
-
-        //     return $count;
-        // }
 
         public function __call($m, $a)
         {

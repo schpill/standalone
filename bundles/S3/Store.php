@@ -108,12 +108,16 @@
 
                         return $default;
                     }
+
+                    return unserialize($val->read());
                 } catch (\Exception $e) {
                     return unserialize($val->read());
                 }
             } catch (\Exception $e) {
                 return $default;
             }
+
+            return $default;
         }
 
         public function getOr($key, callable $c, $e = null)
@@ -151,6 +155,8 @@
             } catch (\Exception $e) {
                 return false;
             }
+
+            return false;
         }
 
         public function __unset($key)
@@ -196,18 +202,20 @@
                         }
 
                         return false;
-                    } else {
-                        return true;
                     }
+
+                    return true;
                 } catch (\Exception $e) {
                     return true;
                 }
             } catch (\Exception $e) {
                 return false;
             }
+
+            return false;
         }
 
-        public function readAndDelete($key)
+        public function readAndDelete($key, $default = null)
         {
             if ($this->has($key)) {
                 $value = $this->get($key);
@@ -217,7 +225,7 @@
                 return $value;
             }
 
-            return null;
+            return $default;
         }
 
         public function rename($keyFrom, $keyTo)
@@ -227,14 +235,14 @@
             return $this->set($keyTo, $value);
         }
 
-        public function copy($keyFrom, $keyTo)
+        public function copy($keyFrom, $keyTo, $default = null)
         {
-            return $this->set($keyTo, $this->get($keyFrom));
+            return $this->set($keyTo, $this->get($keyFrom, $default));
         }
 
-        public function getSize($key)
+        public function getSize($key, $default = null)
         {
-            return strlen($this->get($key));
+            return strlen($this->get($key, $default));
         }
 
         public function age($key, $ts = false)
@@ -272,12 +280,22 @@
 
         public function decr($key, $by = 1)
         {
-            $old = $this->get($key, 1);
+            $old = $this->get($key, 0);
             $new = $old - $by;
 
             $this->set($key, $new);
 
             return $new;
+        }
+
+        public function increment($key, $by = 1)
+        {
+            return $this->incr($key, $by);
+        }
+
+        public function decrement($key, $by = 1)
+        {
+            return $this->decr($key, $by);
         }
 
         public function hset($hash, $key, $value)
@@ -363,6 +381,16 @@
             $this->hset($hash, $key, $new);
 
             return $new;
+        }
+
+        public function hincrement($hash, $key, $by = 1)
+        {
+            return $this->hincr($hash, $key, $by);
+        }
+
+        public function hdecrement($hash, $key, $by = 1)
+        {
+            return $this->hdecr($hash, $key, $by);
         }
 
         public function keys($pattern = '*')
