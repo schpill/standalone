@@ -1080,4 +1080,13 @@
         return $i;
     }
 
+    function octadb($username, $password, $host = null)
+    {
+        if (!$host) {
+            $host = substr(URLSITE, 0, -1) . core('request')->setUrl('/octadb.php');
+        }
+
+        return lib('octadb', [$host, $username, $password]);
+    }
+
     require_once __DIR__ . DS . 'traits.php';

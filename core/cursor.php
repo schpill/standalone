@@ -55,7 +55,7 @@
 
             $dir = $this->dir . DS . 'id';
 
-            return fmr('cursor')->aged($keyCache, function () use ($dir) {
+            // return fmr('cursor')->aged($keyCache, function () use ($dir) {
                 if (is_dir($dir)) {
                     $ids = [];
 
@@ -71,7 +71,7 @@
                 }
 
                 return [];
-            }, $this->age);
+            // }, $this->age);
         }
 
         public function fields()
@@ -302,6 +302,8 @@
 
         public function sum($field)
         {
+            $this->query[] = ['sum' => $field];
+
             $keyCache = sha1('sum.' . $this->dir . $field . serialize($this->query));
 
             return fmr('cursor')->aged($keyCache, function () use ($field) {
@@ -311,6 +313,8 @@
 
         public function min($field)
         {
+            $this->query[] = ['min' => $field];
+
             $keyCache = sha1('min.' . $this->dir . $field . serialize($this->query));
 
             return fmr('cursor')->aged($keyCache, function () use ($field) {
@@ -320,6 +324,8 @@
 
         public function max($field)
         {
+            $this->query[] = ['max' => $field];
+
             $keyCache = sha1('max.' . $this->dir . $field . serialize($this->query));
 
             return fmr('cursor')->aged($keyCache, function () use ($field) {
@@ -329,6 +335,8 @@
 
         public function avg($field)
         {
+            $this->query[] = ['avg' => $field];
+
             $keyCache = sha1('avg.' . $this->dir . $field . serialize($this->query));
 
             return fmr('cursor')->aged($keyCache, function () use ($field) {
@@ -338,6 +346,8 @@
 
         public function multisort($criteria)
         {
+            $this->query[] = ['multisort' => serialize($criteria)];
+
             $keyCache = sha1('multisort.' . $this->dir . serialize($criteria) . serialize($this->query));
 
             $ids =  fmr('cursor')->aged($keyCache, function () use ($criteria) {
@@ -355,6 +365,8 @@
 
         public function groupBy($field)
         {
+            $this->query[] = ['groupBy' => $field];
+
             $keyCache = sha1('groupBy.' . $this->dir . $field . serialize($this->query));
 
             $ids =  fmr('cursor')->aged($keyCache, function () use ($field) {
@@ -372,6 +384,8 @@
 
         public function sortBy($field)
         {
+            $this->query[] = ['sortBy' => $field];
+
             $keyCache = sha1('sortBy.' . $this->dir . $field . serialize($this->query));
 
             $ids =  fmr('cursor')->aged($keyCache, function () use ($field) {
@@ -389,6 +403,8 @@
 
         public function sortByDesc($field)
         {
+            $this->query[] = ['sortByDesc' => $field];
+
             $keyCache = sha1('sortByDesc.' . $this->dir . $field . serialize($this->query));
 
             $ids =  fmr('cursor')->aged($keyCache, function () use ($field) {
@@ -427,7 +443,7 @@
 
             $collection = coll($this->select($key));
 
-            $keyCache = sha1(serialize(func_get_args()) . $this->dir);
+            $keyCache = sha1(serialize($this->query) . $this->dir);
 
             $ids = fmr('cursor')->aged($keyCache, function () use ($collection, $key, $operator, $value) {
                 $results = $collection->filter(function($item) use ($key, $operator, $value) {
@@ -872,5 +888,12 @@
 
                 return $this;
             }
+        }
+
+        public function fresh()
+        {
+            $this->age = $this->age + rand(3600, 10800);
+
+            return $this;
         }
     }

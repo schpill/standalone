@@ -124,6 +124,8 @@
                             $file = $this->dir . DS . $k . DS . $id . '.blazz';
                             File::delete($file);
                             File::put($file, serialize($v));
+
+                            $row[$k] = $v;
                         }
 
                         $file = $this->dir . DS . $id . '.blazz';
@@ -246,7 +248,11 @@
 
             $row = lib('array')->first($data, function ($k, $row) use ($conditions) {
                 foreach ($conditions as $k => $v) {
-                    if ($row[$k] != $v) {
+                    if (fnmatch('*_id', $k) || $k == 'id') {
+                        $v = (int) $v;
+                    }
+
+                    if ($row[$k] !== $v) {
                         return false;
                     }
                 }
