@@ -188,4 +188,105 @@
 
             return count($this->client()->keys($pattern));
         }
+
+        public function setnx($key, $value)
+        {
+            if (!$this->has($key)) {
+                $this->set($key, $value);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public function getOr($k, callable $c, $e = null)
+        {
+            if ($this->has($k)) {
+                return $this->get($k);
+            }
+
+            $res = $c();
+
+            $this->set($k, $res, $e);
+
+            return $res;
+        }
+
+        public function watch($k, callable $exists = null, callable $notExists = null)
+        {
+            if ($this->has($k)) {
+                if (is_callable($exists)) {
+                    return $exists($this->get($k));
+                }
+            } else {
+                if (is_callable($notExists)) {
+                    return $notExists();
+                }
+            }
+
+            return false;
+        }
+
+        public function session($k, $v = 'dummyget', $e = null)
+        {
+            $user       = session('front')->getUser();
+            $isLogged   = !is_null($user);
+
+            $key = $isLogged ? sha1(lng() . '.' . forever() . '1.' . $k) :  sha1(lng() . '.' . forever() . '0.' . $k);
+
+            return 'dummyget' == $v ? $this->get($key) : $this->set($key, $v, $e);
+        }
+
+        public function increment($k, $by = 1)
+        {
+            return $this->incr($k, $by);
+        }
+
+        public function decrement($k, $by = 1)
+        {
+            return $this->decr($k, $by);
+        }
+
+        public function readAndDelete($key, $default = null)
+        {
+            if ($this->has($key)) {
+                $value = $this->get($key);
+
+                $this->delete($key);
+
+                return $value;
+            }
+
+            return $default;
+        }
+
+        public function rename($keyFrom, $keyTo, $default = null)
+        {
+            $value = $this->readAndDelete($keyFrom, $default);
+
+            return $this->set($keyTo, $value);
+        }
+
+        public function copy($keyFrom, $keyTo)
+        {
+            return $this->set($keyTo, $this->get($keyFrom));
+        }
+
+        public function getSize($key)
+        {
+            return strlen($this->get($key));
+        }
+
+        public function length($key)
+        {
+            return strlen($this->get($key));
+        }
+
+        public function has($key)
+        {
+            $key = $this->ns . '.' . $key;
+
+            return $this->client()->exists($key);
+        }
     }

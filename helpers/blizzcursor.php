@@ -16,21 +16,22 @@
     use Iterator;
     use SplFixedArray;
 
-    class CursorCore implements Countable, Iterator
+    class BlizzcursorLib implements Countable, Iterator
     {
         private $resource, $db, $position, $closure, $query = [];
 
         public function __construct($db, callable $closure = null)
         {
-            $this->dir = $db->dir();
             $this->age = $db->age();
 
-            $this->resource = lib('array')->makeResource($this->ids());
-
             $this->db = $db;
+
+            $this->resource = lib('array')->makeResource($this->ids());
             $this->position = 0;
 
             $this->closure = $closure;
+
+            $this->dir = $db->dir;
 
             $this->count();
         }
@@ -51,50 +52,40 @@
 
         public function ids()
         {
-            $keyCache = sha1('ids.' . $this->dir);
+            $keys = $this->db->store()->keys('row.*');
 
-            $dir = $this->dir . DS . 'id';
+            $collection = [];
 
-            // return fmr('cursor')->aged($keyCache, function () use ($dir) {
-                if (is_dir($dir)) {
-                    $ids = [];
+            foreach ($keys as $key) {
+                $id = (int) str_replace('row.', '', $key);
 
-                    $rows = glob($dir . DS . '*.blazz');
-
-                    foreach ($rows as $row) {
-                        $id = str_replace([$dir . DS, '.blazz'], '', $row);
-
-                        $ids[] = (int) $id;
-                    }
-
-                    return $ids;
+                if (!in_array($id, $collection)) {
+                    $collection[] = $id;
                 }
+            }
 
-                return [];
-            // }, $this->age);
+            return $collection;
         }
 
         public function fields()
         {
-            $keyCache = sha1('fields.' . $this->dir);
+            $fields = ['id', 'created_at', 'updated_at'];
 
-            $dir = $this->dir;
+            foreach ($this->getIterator() as $id) {
+                $keys = $this->db->store()->keys('field.*.' . $id);
 
-            return fmr('cursor')->aged($keyCache, function () use ($dir) {
-                $fields = [];
+                foreach ($keys as $key) {
+                    $field = str_replace(['field.', '.' . $id], '', $key);
 
-                $files  = glob($dir . DS . '*');
-
-                foreach ($files as $file) {
-                    if (is_dir($file) && !fnmatch('_*', $file)) {
-                        $field = str_replace([$dir . DS], '', $file);
-
+                    if (!in_array($field, $fields)) {
                         $fields[] = $field;
                     }
                 }
 
                 return $fields;
-            }, $this->age);
+            }
+
+            return $fields;
         }
 
         public function __destruct()
@@ -152,34 +143,12 @@
 
         public function getRow($id)
         {
-            $row = null;
-
-            $file = $this->dir . DS . $id . '.blazz';
-
-            if (file_exists($file)) {
-                $row = unserialize(File::read($file));
-
-                foreach ($row as $k => $v) {
-                    if (fnmatch('*_id', $k)) {
-                        $fkTable        = str_replace('_id', '', $k);
-                        $fkId           = (int) $v;
-                        $row['fk_' . $fkTable]  = $this->db->instanciate($this->db->db(), $fkTable)->find((int) $fkId, false);
-                    }
-                }
-            }
-
-            return $row;
+            return $this->db->store->get("row.$id", null);
         }
 
         public function getFieldValueById($field, $id, $d = null)
         {
-            $file = $this->dir . DS . $field . DS . $id . '.blazz';
-
-            if (file_exists($file)) {
-                return unserialize(File::read($file));
-            }
-
-            return $d;
+            return $this->db->store->get("field.$field.$id", $d);
         }
 
         public function getNext()
@@ -306,7 +275,7 @@
 
             $keyCache = sha1('sum.' . $this->dir . $field . serialize($this->query));
 
-            return fmr('cursor')->aged($keyCache, function () use ($field) {
+            return fmr('blizzcursor')->aged($keyCache, function () use ($field) {
                 return coll($this->select($field))->sum($field);
             }, $this->age);
         }
@@ -317,7 +286,7 @@
 
             $keyCache = sha1('min.' . $this->dir . $field . serialize($this->query));
 
-            return fmr('cursor')->aged($keyCache, function () use ($field) {
+            return fmr('blizzcursor')->aged($keyCache, function () use ($field) {
                 return coll($this->select($field))->min($field);
             }, $this->age);
         }
@@ -328,7 +297,7 @@
 
             $keyCache = sha1('max.' . $this->dir . $field . serialize($this->query));
 
-            return fmr('cursor')->aged($keyCache, function () use ($field) {
+            return fmr('blizzcursor')->aged($keyCache, function () use ($field) {
                 return coll($this->select($field))->max($field);
             }, $this->age);
         }
@@ -339,7 +308,7 @@
 
             $keyCache = sha1('avg.' . $this->dir . $field . serialize($this->query));
 
-            return fmr('cursor')->aged($keyCache, function () use ($field) {
+            return fmr('blizzcursor')->aged($keyCache, function () use ($field) {
                 return coll($this->select($field))->avg($field);
             }, $this->age);
         }
@@ -350,7 +319,7 @@
 
             $keyCache = sha1('multisort.' . $this->dir . serialize($criteria) . serialize($this->query));
 
-            $ids =  fmr('cursor')->aged($keyCache, function () use ($criteria) {
+            $ids =  fmr('blizzcursor')->aged($keyCache, function () use ($criteria) {
                 $results = coll($this->select(array_keys($criteria)))->multisort($criteria);
 
                 return array_values($results->fetch('id')->toArray());
@@ -369,7 +338,7 @@
 
             $keyCache = sha1('groupBy.' . $this->dir . $field . serialize($this->query));
 
-            $ids =  fmr('cursor')->aged($keyCache, function () use ($field) {
+            $ids =  fmr('blizzcursor')->aged($keyCache, function () use ($field) {
                 $results = coll($this->select($field))->groupBy($field);
 
                 return array_values($results->fetch('id')->toArray());
@@ -388,7 +357,7 @@
 
             $keyCache = sha1('sortBy.' . $this->dir . $field . serialize($this->query));
 
-            $ids =  fmr('cursor')->aged($keyCache, function () use ($field) {
+            $ids =  fmr('blizzcursor')->aged($keyCache, function () use ($field) {
                 $results = coll($this->select($field))->sortBy($field);
 
                 return array_values($results->fetch('id')->toArray());
@@ -407,7 +376,7 @@
 
             $keyCache = sha1('sortByDesc.' . $this->dir . $field . serialize($this->query));
 
-            $ids =  fmr('cursor')->aged($keyCache, function () use ($field) {
+            $ids =  fmr('blizzcursor')->aged($keyCache, function () use ($field) {
                 $results = coll($this->select($field))->sortByDesc($field);
 
                 return array_values($results->fetch('id')->toArray());
@@ -445,7 +414,7 @@
 
             $keyCache = sha1(serialize($this->query) . $this->dir);
 
-            $ids = fmr('cursor')->aged($keyCache, function () use ($collection, $key, $operator, $value) {
+            $ids = fmr('blizzcursor')->aged($keyCache, function () use ($collection, $key, $operator, $value) {
                 $results = $collection->filter(function($item) use ($key, $operator, $value) {
                     $item = (object) $item;
                     $actual = isset($item->{$key}) ? $item->{$key} : null;

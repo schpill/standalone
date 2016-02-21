@@ -154,6 +154,10 @@
         {
             $k = sha1($this->dir) . '.' . $k;
 
+            if (0 > $a) {
+                return $c();
+            }
+
             return ageCache($k, $c, $a);
         }
 

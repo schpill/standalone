@@ -14,7 +14,7 @@
 
     use SplFixedArray;
 
-    class BlizzLib
+    class BluzzLib
     {
         private $query = [];
 
@@ -23,7 +23,7 @@
             $this->db       = is_null($db) ? SITE_NAME : $db;
             $this->table    = is_null($table) ? 'core' : $table;
 
-            $dir = Config::get('dir.blizz.store', session_save_path());
+            $dir = Config::get('dir.bluzz.store', session_save_path());
 
             if (!is_dir($dir)) {
                 File::mkdir($dir);
@@ -41,17 +41,19 @@
                 File::mkdir($this->dir);
             }
 
-            $store    = lib('blizzstore', [$this]);
+            $store = lib('redys', ["bluzz.$this->db.$this->table"]);
 
-            Now::set("blizz.store.$this->db.$this->table", $store);
+            Now::set("bluzz.store.$this->db.$this->table", $store);
 
-            $this->cursor = lib('blizzcursor', [$this]);
+            $this->cursor = lib('bluzzcursor', [$this]);
+
+            $this->store->setnx('age', time());
         }
 
         public function __get($k)
         {
             if ($k == 'store') {
-                return Now::get("blizz.store.$this->db.$this->table");
+                return Now::get("bluzz.store.$this->db.$this->table");
             }
 
             return isset($this->$k) ? $this->$k : null;
@@ -132,7 +134,7 @@
 
                 $this->store->del("row.$id");
 
-                touch($this->dir . DS . 'age.blizz', time());
+                $this->store->set('age', time());
             }
 
             return $exists;
@@ -291,7 +293,7 @@
 
             $res = call_user_func_array([$this->cursor, $m], $a);
 
-            return is_object($res) && $res instanceof BlizzcursorLib ? $this->cursor : $res;
+            return is_object($res) && $res instanceof BluzzcursorLib ? $this->cursor : $res;
         }
 
         public function model(array $data = [])
@@ -306,7 +308,7 @@
 
         public function age()
         {
-            return filemtime($this->dir . DS . 'age.blizz');
+            return $this->store->get('age');
         }
 
         private function makeId()
@@ -326,6 +328,6 @@
 
         public function store()
         {
-            return Now::get("blizz.store.$this->db.$this->table");
+            return Now::get("bluzz.store.$this->db.$this->table");
         }
     }

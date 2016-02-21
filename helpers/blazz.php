@@ -290,11 +290,83 @@
 
         public function __call($m, $a)
         {
+            if (fnmatch('findBy*', $m)) {
+                $field = Inflector::uncamelize(Inflector::lower(str_replace('findBy', '', $m)));
+
+                if (strlen($field) > 0) {
+                    return $this->where([$field, '=', current($a)]);
+                }
+            }
+
+            if (fnmatch('countBy*', $m)) {
+                $field = Inflector::uncamelize(Inflector::lower(str_replace('countBy', '', $m)));
+
+                if (strlen($field) > 0) {
+                    return $this->where([$field, '=', current($a)])->count();
+                }
+            }
+
+            if (fnmatch('groupBy*', $m)) {
+                $field = Inflector::uncamelize(Inflector::lower(str_replace('groupBy', '', $m)));
+
+                if (strlen($field) > 0) {
+                    return $this->groupBy($field);
+                }
+            }
+
+            if (fnmatch('findOneBy*', $m)) {
+                $field = Inflector::uncamelize(Inflector::lower(str_replace('findOneBy', '', $m)));
+
+                if (strlen($field) > 0) {
+                    $model = false;
+
+                    if (count($a) == 2) {
+                        if (true === end($a)) {
+                            $model = true;
+                        }
+                    }
+
+                    return $this->where([$field, '=', current($a)])->first($model);
+                }
+            }
+
+            if (fnmatch('firstBy*', $m)) {
+                $field = Inflector::uncamelize(Inflector::lower(str_replace('firstBy', '', $m)));
+
+                if (strlen($field) > 0) {
+                    $model = false;
+
+                    if (count($a) == 2) {
+                        if (true === end($a)) {
+                            $model = true;
+                        }
+                    }
+
+                    return $this->where([$field, '=', current($a)])->first($model);
+                }
+            }
+
+            if (fnmatch('lastBy*', $m)) {
+                $field = Inflector::uncamelize(Inflector::lower(str_replace('lastBy', '', $m)));
+
+                if (strlen($field) > 0) {
+                    $model = false;
+
+                    if (count($a) == 2) {
+                        if (true === end($a)) {
+                            $model = true;
+                        }
+                    }
+
+                    return $this->where([$field, '=', current($a)])->last($model);
+                }
+            }
+
             $this->query[] = func_get_args();
 
             $res = call_user_func_array([$this->cursor, $m], $a);
 
-            return is_object($res) ? $this->cursor : $res;
+            return is_object($res) && $res instanceof CursorCore ? $this->cursor : $res;
         }
 
         private function makeId()
