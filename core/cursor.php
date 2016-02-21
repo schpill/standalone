@@ -522,7 +522,7 @@
 
         public function toArray($fields = null)
         {
-            $fields = is_null($fields) ? $this->select() : $fields;
+            $fields = is_null($fields) ? $this->fields() : $fields;
 
             if (!in_array('id', $fields)) {
                 $fields[] = 'id';
@@ -554,7 +554,7 @@
 
         public function toModels($fields = null)
         {
-            $fields = is_null($fields) ? $this->select() : $fields;
+            $fields = is_null($fields) ? $this->fields() : $fields;
 
             if (!in_array('id', $fields)) {
                 $fields[] = 'id';

@@ -16,6 +16,8 @@
 
     class OctadbLib
     {
+        private $wheres = [], $sortBy = ['created_at', 'ASC'], $selects = ['id'];
+
         public function __construct($host, $username, $password)
         {
             $this->host     = $host;
@@ -33,7 +35,6 @@
 
             return $this;
         }
-
 
         public function table($table = null)
         {
@@ -64,6 +65,62 @@
             return $response['message'];
         }
 
+        public function select($what)
+        {
+            if (is_string($what)) {
+                if (!strlen($what)) {
+                    return $this;
+                }
+
+                if (fnmatch('*,*', $what)) {
+                    $what = explode(',', str_replace(' ', '', $what));
+                } else {
+                    $what = [$what];
+                }
+            }
+
+            if (!is_array($what)) {
+                return $this;
+            }
+
+            if (empty($what)) {
+                return $this;
+            }
+
+            $this->selects = array_merge($this->selects, $what);
+
+            return $this;
+        }
+
+        public function where($op)
+        {
+            $this->check();
+
+            $op[] = 'and';
+
+            $this->wheres[] = $op;
+
+            return $this;
+        }
+
+        public function sortBy($field, $direction = 'ASC')
+        {
+            $this->check();
+
+            $this->sortBy = [$field, $direction];
+
+            return $this;
+        }
+
+        public function sortByDesc($field, $direction = 'DESC')
+        {
+            $this->check();
+
+            $this->sortBy = [$field, $direction];
+
+            return $this;
+        }
+
         private function check()
         {
             if (!isset($this->db)) {
@@ -92,6 +149,146 @@
             }
 
             return $this;
+        }
+
+        public function run()
+        {
+            $this->check();
+
+            $response = $this->sender()->post($this->host, [
+                'action'    => 'query',
+                'token'     => $this->token,
+                'wheres'    => $this->wheres,
+                'selects'   => $this->selects,
+                'db'        => $this->db,
+                'table'     => $this->table
+            ]);
+
+            if (isset($response['token'])) {
+                $this->token = $response['token'];
+            }
+            wdd($response);
+
+            return $response['data'];
+        }
+
+        public function count()
+        {
+            $this->check();
+
+            $response = $this->sender()->post($this->host, [
+                'action'    => 'count',
+                'wheres'    => $this->wheres,
+                'db'        => $this->db,
+                'table'     => $this->table
+            ]);
+
+            if (isset($response['token'])) {
+                $this->token = $response['token'];
+            }
+
+            return $response['data'];
+        }
+
+        public function min()
+        {
+            $this->check();
+
+            $response = $this->sender()->post($this->host, [
+                'action'    => 'min',
+                'wheres'    => $this->wheres,
+                'db'        => $this->db,
+                'table'     => $this->table
+            ]);
+
+            if (isset($response['token'])) {
+                $this->token = $response['token'];
+            }
+
+            return $response['data'];
+        }
+
+        public function max()
+        {
+            $this->check();
+
+            $response = $this->sender()->post($this->host, [
+                'action'    => 'max',
+                'wheres'    => $this->wheres,
+                'db'        => $this->db,
+                'table'     => $this->table
+            ]);
+
+            if (isset($response['token'])) {
+                $this->token = $response['token'];
+            }
+
+            return $response['data'];
+        }
+
+        public function avg()
+        {
+            $this->check();
+
+            $response = $this->sender()->post($this->host, [
+                'action'    => 'avg',
+                'wheres'    => $this->wheres,
+                'db'        => $this->db,
+                'table'     => $this->table
+            ]);
+
+            if (isset($response['token'])) {
+                $this->token = $response['token'];
+            }
+
+            return $response['data'];
+        }
+
+        public function sum()
+        {
+            $this->check();
+
+            $response = $this->sender()->post($this->host, [
+                'action'    => 'sum',
+                'wheres'    => $this->wheres,
+                'db'        => $this->db,
+                'table'     => $this->table
+            ]);
+
+            if (isset($response['token'])) {
+                $this->token = $response['token'];
+            }
+
+            return $response['data'];
+        }
+
+        public function groupBy()
+        {
+            $this->check();
+
+            $response = $this->sender()->post($this->host, [
+                'action'    => 'groupBy',
+                'wheres'    => $this->wheres,
+                'db'        => $this->db,
+                'table'     => $this->table
+            ]);
+
+            if (isset($response['token'])) {
+                $this->token = $response['token'];
+            }
+
+            return $response['data'];
+        }
+
+        public function __call($m, $a)
+        {
+            if ('or' == $m) {
+                $this->check();
+                $a[] = 'or';
+                $this->wheres[] = $a;
+
+                return $this;
+            }
         }
 
         public function sender()

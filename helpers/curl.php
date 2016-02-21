@@ -156,6 +156,10 @@
             }
 
             foreach ($postdata as $key=>$value) {
+                if (is_array($value)) {
+                    $value = serialize($value);
+                }
+
                 $post_array[] = urlencode($key) . "=" . urlencode($value);
             }
 
