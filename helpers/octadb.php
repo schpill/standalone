@@ -167,7 +167,6 @@
             if (isset($response['token'])) {
                 $this->token = $response['token'];
             }
-            wdd($response);
 
             return $response['data'];
         }
