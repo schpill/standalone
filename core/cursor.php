@@ -150,7 +150,7 @@
             return $data;
         }
 
-        public function getRow($id)
+        public function getRow($id, $fk = true)
         {
             $row = null;
 
@@ -160,7 +160,7 @@
                 $row = unserialize(File::read($file));
 
                 foreach ($row as $k => $v) {
-                    if (fnmatch('*_id', $k)) {
+                    if (fnmatch('*_id', $k) && true === $fk) {
                         $fkTable        = str_replace('_id', '', $k);
                         $fkId           = (int) $v;
                         $row['fk_' . $fkTable]  = $this->db->instanciate($this->db->db(), $fkTable)->find((int) $fkId, false);
@@ -848,6 +848,51 @@
             $items = (array) $this->getIterator();
 
             return $this->new(array_slice($items, ($page - 1) * $perPage, $perPage));
+        }
+
+        public function delete()
+        {
+            $deleted = 0;
+
+            $items = (array) $this->getIterator();
+
+            foreach ($items as $item) {
+                if (isset($item['id'])) {
+                    $row = $this->db->find((int) $item['id']);
+
+                    if ($row) {
+                        $row->delete();
+                        $deleted++;
+                    }
+                }
+            }
+
+            return $deleted;
+        }
+
+        public function update(array $criteria)
+        {
+            $updated = 0;
+
+            $items = (array) $this->getIterator();
+
+            foreach ($items as $item) {
+                if (isset($item['id'])) {
+                    $row = $this->db->find((int) $item['id']);
+
+                    if ($row) {
+                        foreach ($criteria as $k => $v) {
+                            $setter = setter($k);
+                            $row->$setter($v);
+                        }
+
+                        $row->save();
+                        $updated++;
+                    }
+                }
+            }
+
+            return $updated;
         }
 
         public function __call($m, $a)

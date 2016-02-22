@@ -35,17 +35,21 @@
 
             File::put($file, serialize($v));
 
-            $expire = is_null($expire) ? strtotime('+10 year') : time() + $expire;
+            if (!is_null($expire)) {
+                $exp = $expire > time() ? $expire : time() + $expire;
+            } else {
+                $exp = strtotime('+10 year');
+            }
 
-            touch($file, $expire);
+            touch($file, $exp);
 
             return $this;
         }
 
-        public function setnx($key, $value)
+        public function setnx($key, $value, $expire = null)
         {
             if (!$this->has($key)) {
-                $this->set($key, $value);
+                $this->set($key, $value, $expire);
 
                 return true;
             }
@@ -114,6 +118,10 @@
 
         public function getOr($k, callable $c, $e = null)
         {
+            if ($e < 1) {
+                return $c();
+            }
+
             if ($this->has($k)) {
                 return $this->get($k);
             }
@@ -140,7 +148,7 @@
             return false;
         }
 
-        public function session($k, $v = 'dummyget', $e = null)
+        public function session($k, $v = 'dummyget', $field = '', $e = null)
         {
             $user       = session('front')->getUser();
             $isLogged   = !is_null($user);
@@ -615,5 +623,19 @@
             }
 
             return false;
+        }
+
+        public function deleteAll()
+        {
+            $native = Config::get('dir.ephemere', session_save_path());
+
+            File::rmdir($native);
+
+            return $this;
+        }
+
+        public function flushAll()
+        {
+            return $this->deleteAll();
         }
     }

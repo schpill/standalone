@@ -16,7 +16,7 @@
 
     class BlazzLib
     {
-        private $query = [], $toWrite = [], $toDelete = [], $db, $table, $res, $file, $dir, $write = false;
+        private $query = [], $toWrite = [], $toDelete = [], $db, $table, $res, $file, $dir, $begin = false, $write = false;
 
         public function __construct($db = null, $table = null)
         {
@@ -65,85 +65,89 @@
 
         public function refresh()
         {
-            if (true === $this->write) {
-                if (!empty($this->toDelete)) {
-                    foreach ($this->toDelete as $row) {
-                        $id     = isAke($row, 'id');
-                        $file   = $this->dir . DS . 'id' . DS . $id . '.blazz';
+            if (!$this->begin) {
+                if (true === $this->write) {
+                    if (!empty($this->toDelete)) {
+                        foreach ($this->toDelete as $row) {
+                            $id     = isAke($row, 'id');
+                            $file   = $this->dir . DS . 'id' . DS . $id . '.blazz';
 
-                        if (!is_dir($this->dir . DS . 'id')) {
-                            File::mkdir($this->dir . DS . 'id');
-                        }
-
-                        File::delete($file);
-
-                        foreach ($row as $k => $v) {
-                            $file = $this->dir . DS . $k . DS . $id . '.blazz';
-
-                            if (!is_dir($this->dir . DS . $k)) {
-                                File::mkdir($this->dir . DS . $k);
+                            if (!is_dir($this->dir . DS . 'id')) {
+                                File::mkdir($this->dir . DS . 'id');
                             }
 
                             File::delete($file);
-                        }
 
-                        $file = $this->dir . DS . $id . '.blazz';
-                        File::delete($file);
-                        touch($this->dir . DS . 'age.blazz', time());
-                    }
-                }
+                            foreach ($row as $k => $v) {
+                                $file = $this->dir . DS . $k . DS . $id . '.blazz';
 
-                if (!empty($this->toWrite)) {
-                    foreach ($this->toWrite as $row) {
-                        $id = isAke($row, 'id');
+                                if (!is_dir($this->dir . DS . $k)) {
+                                    File::mkdir($this->dir . DS . $k);
+                                }
 
-                        $id = (int) $id;
-
-                        $file = $this->dir . DS . 'id' . DS . $id . '.blazz';
-
-                        if (!is_dir($this->dir . DS . 'id')) {
-                            File::mkdir($this->dir . DS . 'id');
-                        }
-
-                        File::delete($file);
-                        File::put($file, serialize($id));
-
-                        foreach ($row as $k => $v) {
-                            if ($k == 'id') {
-                                continue;
+                                File::delete($file);
                             }
 
-                            if (fnmatch ('*_id', $k)) {
-                                $v = (int) $v;
-                            }
-
-                            if (!is_dir($this->dir . DS . $k)) {
-                                File::mkdir($this->dir . DS . $k);
-                            }
-
-                            $file = $this->dir . DS . $k . DS . $id . '.blazz';
+                            $file = $this->dir . DS . $id . '.blazz';
                             File::delete($file);
-                            File::put($file, serialize($v));
-
-                            $row[$k] = $v;
+                            touch($this->dir . DS . 'age.blazz', time());
                         }
-
-                        $file = $this->dir . DS . $id . '.blazz';
-                        File::delete($file);
-                        File::put($file, serialize($row));
-                        touch($this->dir . DS . 'age.blazz', time());
                     }
+
+                    if (!empty($this->toWrite)) {
+                        foreach ($this->toWrite as $row) {
+                            $id = isAke($row, 'id');
+
+                            $id = (int) $id;
+
+                            $file = $this->dir . DS . 'id' . DS . $id . '.blazz';
+
+                            if (!is_dir($this->dir . DS . 'id')) {
+                                File::mkdir($this->dir . DS . 'id');
+                            }
+
+                            File::delete($file);
+                            File::put($file, serialize($id));
+
+                            foreach ($row as $k => $v) {
+                                if ($k == 'id') {
+                                    continue;
+                                }
+
+                                if (fnmatch ('*_id', $k)) {
+                                    $v = (int) $v;
+                                }
+
+                                if (!is_dir($this->dir . DS . $k)) {
+                                    File::mkdir($this->dir . DS . $k);
+                                }
+
+                                $file = $this->dir . DS . $k . DS . $id . '.blazz';
+                                File::delete($file);
+                                File::put($file, serialize($v));
+
+                                $row[$k] = $v;
+                            }
+
+                            $file = $this->dir . DS . $id . '.blazz';
+                            File::delete($file);
+                            File::put($file, serialize($row));
+                            touch($this->dir . DS . 'age.blazz', time());
+                        }
+                    }
+
+                    $this->cursor = core('cursor', [$this])->reset();
+
+                    $this->write = false;
                 }
-
-                $this->cursor = core('cursor', [$this])->reset();
-
-                $this->write = false;
+            } else {
+                throw new Exception("Please commit or rollback your transaction.");
             }
 
             return $this;
         }
 
-        public function add($row)
+        private function add($row)
         {
             $id = isAke($row, 'id', null);
 
@@ -154,6 +158,11 @@
             }
 
             return $this;
+        }
+
+        public function push($row)
+        {
+            return $this->add($row);
         }
 
         public function create(array $data = [])
@@ -167,7 +176,7 @@
 
             $id = isAke($data, 'id', null);
 
-            if ($id) {
+            if ($id && is_int($id)) {
                 return $this->update($data, $model);
             }
 
@@ -191,6 +200,14 @@
             $this->write = true;
 
             $data['updated_at'] = time();
+
+            $old = $this->cursor->getRow($data['id'], false);
+
+            if (is_null($old)) {
+                $old = [];
+            }
+
+            $data = array_merge($old, $data);
 
             $this->delete($data['id']);
 
@@ -290,23 +307,23 @@
 
         public function __call($m, $a)
         {
-            if (fnmatch('findBy*', $m)) {
+            if (fnmatch('findBy*', $m) && strlen($m) > 'findBy') {
                 $field = Inflector::uncamelize(Inflector::lower(str_replace('findBy', '', $m)));
 
-                if (strlen($field) > 0) {
+                if (strlen($field) > 0 && !empty($a)) {
                     return $this->where([$field, '=', current($a)]);
                 }
             }
 
-            if (fnmatch('countBy*', $m)) {
+            if (fnmatch('countBy*', $m) && strlen($m) > 'countBy') {
                 $field = Inflector::uncamelize(Inflector::lower(str_replace('countBy', '', $m)));
 
-                if (strlen($field) > 0) {
+                if (strlen($field) > 0 && !empty($a)) {
                     return $this->where([$field, '=', current($a)])->count();
                 }
             }
 
-            if (fnmatch('groupBy*', $m)) {
+            if (fnmatch('groupBy*', $m) && strlen($m) > 'groupBy') {
                 $field = Inflector::uncamelize(Inflector::lower(str_replace('groupBy', '', $m)));
 
                 if (strlen($field) > 0) {
@@ -314,10 +331,10 @@
                 }
             }
 
-            if (fnmatch('findOneBy*', $m)) {
+            if (fnmatch('findOneBy*', $m) && strlen($m) > 'findOneBy') {
                 $field = Inflector::uncamelize(Inflector::lower(str_replace('findOneBy', '', $m)));
 
-                if (strlen($field) > 0) {
+                if (strlen($field) > 0 && !empty($a)) {
                     $model = false;
 
                     if (count($a) == 2) {
@@ -330,10 +347,10 @@
                 }
             }
 
-            if (fnmatch('firstBy*', $m)) {
+            if (fnmatch('firstBy*', $m) && strlen($m) > 'firstBy') {
                 $field = Inflector::uncamelize(Inflector::lower(str_replace('firstBy', '', $m)));
 
-                if (strlen($field) > 0) {
+                if (strlen($field) > 0 && !empty($a)) {
                     $model = false;
 
                     if (count($a) == 2) {
@@ -346,10 +363,10 @@
                 }
             }
 
-            if (fnmatch('lastBy*', $m)) {
+            if (fnmatch('lastBy*', $m) && strlen($m) > 'lastBy') {
                 $field = Inflector::uncamelize(Inflector::lower(str_replace('lastBy', '', $m)));
 
-                if (strlen($field) > 0) {
+                if (strlen($field) > 0 && !empty($a)) {
                     $model = false;
 
                     if (count($a) == 2) {
@@ -411,5 +428,48 @@
         public function cursor()
         {
             return $this->cursor;
+        }
+
+        /* Transactions */
+
+        public function begin()
+        {
+            $this->begin = true;
+
+            return $this;
+        }
+
+        public function rollback()
+        {
+            $this->toWrite  = [];
+            $this->toDelete = [];
+            $this->write    = false;
+            $this->begin    = false;
+
+            return $this;
+        }
+
+        public function commit()
+        {
+            $this->begin = false;
+
+            return $this->refresh();
+        }
+
+        /* Alias Rollback */
+        public function fail()
+        {
+            return $this->rollback();
+        }
+
+        /* Alias commit */
+        public function success()
+        {
+            return $this->commit();
+        }
+
+        public function transactional(callable $cb)
+        {
+            return call_user_func_array($cb, [$this]);
         }
     }
