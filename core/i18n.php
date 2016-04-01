@@ -36,7 +36,12 @@
         {
             $key = is_null($key) ? sha1($default . serialize($args)) : $key;
 
-            $keyCache = sha1($default . session('web')->getLanguage() . $key . serialize($args));
+            $locale = session('web')->getLanguage();
+
+            if (!$locale) {
+                $locale = lng();
+                session('web')->setLanguage($locale);
+            }
 
             return $this->get($key, $default, $args);
         }
@@ -46,6 +51,11 @@
             $translation = $default;
 
             $locale = session('web')->getLanguage();
+
+            if (!$locale) {
+                $locale = lng();
+                session('web')->setLanguage($locale);
+            }
 
             if (fnmatch('*_*', $locale)) {
                 list($locale, $d) = explode('_', $locale, 2);
